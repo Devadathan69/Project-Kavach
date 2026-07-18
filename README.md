@@ -27,11 +27,12 @@ Then set `DATABASE_URL` to the matching local connection string, for example `po
 ## Audit workflow
 
 1. The operator takes a photo with a supported phone camera or selects an inspection image.
-2. The operator names the structure and chooses either a name-based location lookup (recommended for uploads) or live device location (recommended on-site).
-3. KAVACH uses the supplied name to find public map candidates, asks the model to select only an evidence-supported match, and checks linked public construction data when available. A verified match supplies the inspection location for uploaded images.
-4. The validated morphology, stress, environmental, and predictor stages produce the visual dashboard and bilingual report.
+2. The operator names the structure and chooses either an on-site live device location or a name-based public-record lookup for an uploaded image.
+3. For public-record lookup, KAVACH presents a public map candidate for operator confirmation before it uses map coordinates or linked construction evidence. The operator can instead continue with visual-only triage.
+4. The operator declares whether the frame is uncalibrated or contains a visible marker of known length. Without that scale evidence, physical millimetre measurements are explicitly withheld.
+5. The validated morphology, visual orientation screen, evidence-grounded environmental stage, and predictor stage produce the visual dashboard and bilingual report.
 
-The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits public map lookups, uses a conservative exact-name Wikidata fallback when a verified map record has no linked identifier, and displays source links for the selected OpenStreetMap and Wikidata records.
+The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits both audits and public map lookups, uses a conservative exact-name Wikidata fallback when a verified map record has no linked identifier, and displays source links for the selected OpenStreetMap and Wikidata records.
 
 The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-4o`) for live model calls. GPT-4o receives high-detail image tiles and JSON-mode structured outputs; reasoning controls are sent only to models that support them. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
 
@@ -41,7 +42,9 @@ Your OpenAI project must be permitted to call the selected model through Chat Co
 
 - Uploaded originals are stored outside the public static directory under `KAVACH_STORAGE_DIR` (default `./storage`).
 - The intake never presents manual latitude, longitude, or age fields. It can use a permissioned live device location or a verified public structure record; the dashboard masks coordinates to coarse precision.
-- After an operator submits a named structure and live location, KAVACH makes one rate-limited nearby-name lookup against OpenStreetMap Nominatim, asks the model to select only an evidence-supported candidate, and queries linked Wikidata `P571` inception data for construction year. It shows source links and leaves age unavailable when a reliable match or public construction record does not exist.
+- For a structure-name lookup, KAVACH makes a rate-limited public-candidate search against OpenStreetMap Nominatim. The operator confirms the selected record before its coordinates or linked Wikidata `P571` construction evidence are used. It leaves age unavailable when a reliable public record does not exist.
+- By default, an uncalibrated image has all physical millimetre and square-millimetre fields withheld. A declared reference marker only enables visual estimates and never replaces field measurement.
+- Live environmental values are used only when `KAVACH_ENVIRONMENT_DATA_URL` is configured and responds. Without an approved source, the environmental context is explicitly unavailable rather than inferred.
 - The service worker caches only the application shell and static assets; audit API traffic, reports, images, locations, and credentials are never cached.
 - Offline uploads are stored only after the operator explicitly opts in. They can be retried after reconnecting or deleted from the queue.
 
@@ -60,4 +63,12 @@ Your OpenAI project must be permitted to call the selected model through Chat Co
 
 ## Deployment notes
 
-The audit route uses Next.js’s Node.js runtime because it writes validated media metadata and uses Prisma/PostgreSQL. It is intentionally not an Edge route. Configure persistent object storage via the storage adapter boundary before a multi-instance deployment; local `storage/` is for single-node development only.
+The audit route uses Next.js’s Node.js runtime because it writes validated media metadata and uses Prisma/PostgreSQL. It is intentionally not an Edge route. The built-in request limiter is an in-memory, per-instance protection: it is useful for a single Render instance but must be replaced with a shared store such as Redis when horizontally scaling.
+
+Before a public, multi-user rollout, complete these infrastructure gates:
+
+- Replace the local `KAVACH_STORAGE_DIR` filesystem with a persistent object-storage adapter (for example, S3, R2, or Supabase Storage). Local `storage/` is suitable only for a single-node development/demo instance.
+- Put the application behind real operator authentication and use a shared distributed rate limiter. A shared secret, database, or browser-only control is not an adequate substitute.
+- Configure a documented environmental data provider and retain the provider response/version with each report.
+- Move long-running audits to a durable background queue/worker so a deployment restart or request timeout cannot interrupt an inspection.
+- Build a labelled, consented validation corpus and publish precision/recall, false-negative, and calibration results for each supported defect class before making performance claims.

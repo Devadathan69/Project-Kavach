@@ -9,6 +9,8 @@ export const riskLevels = ["LOW", "MODERATE", "HIGH", "CRITICAL"] as const;
 export const urgencies = ["MONITOR", "SCHEDULED", "PRIORITY", "IMMEDIATE"] as const;
 export const salinityExposures = ["LOW", "MODERATE", "HIGH", "EXTREME"] as const;
 export const drainageConditions = ["GOOD", "FAIR", "POOR", "UNKNOWN"] as const;
+export const measurementModes = ["UNCALIBRATED", "REFERENCE_MARKER"] as const;
+export const assetContextModes = ["AUTO", "CONFIRMED", "VISUAL_ONLY"] as const;
 
 export const BoundingBoxSchema = z.object({
   xMin: finiteNumber.nonnegative(),
@@ -152,6 +154,10 @@ export const AuditMetadataSchema = z.object({
   structuralAgeYears: z.number().int().nonnegative().max(1000).nullable(),
   locationSource: z.enum(["LIVE_DEVICE", "STRUCTURE_LOOKUP"]),
   locationConsent: z.boolean(),
+  measurementMode: z.enum(measurementModes),
+  referenceMarkerMm: finiteNumber.positive().max(10_000).nullable(),
+  assetContextMode: z.enum(assetContextModes),
+  confirmedAssetCandidateId: z.string().min(3).max(180).nullable(),
   idempotencyKey: z.string().min(12).max(150)
 }).strict().superRefine((metadata, context) => {
   if ((metadata.latitude === null) !== (metadata.longitude === null)) {
@@ -165,6 +171,18 @@ export const AuditMetadataSchema = z.object({
   }
   if (metadata.locationSource === "STRUCTURE_LOOKUP" && metadata.locationConsent) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Location consent applies only to coordinates captured from the live device.", path: ["locationConsent"] });
+  }
+  if (metadata.measurementMode === "REFERENCE_MARKER" && metadata.referenceMarkerMm === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "A declared reference marker needs its known length in millimetres.", path: ["referenceMarkerMm"] });
+  }
+  if (metadata.measurementMode === "UNCALIBRATED" && metadata.referenceMarkerMm !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "A reference length is allowed only when a visible reference marker is declared.", path: ["referenceMarkerMm"] });
+  }
+  if (metadata.assetContextMode === "CONFIRMED" && metadata.confirmedAssetCandidateId === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "A confirmed asset context needs a selected public-record candidate.", path: ["confirmedAssetCandidateId"] });
+  }
+  if (metadata.assetContextMode !== "CONFIRMED" && metadata.confirmedAssetCandidateId !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "A public-record candidate can be retained only after operator confirmation.", path: ["confirmedAssetCandidateId"] });
   }
 });
 

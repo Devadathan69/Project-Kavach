@@ -36,12 +36,16 @@ function Workspace({ demoMode, modelName }: { demoMode: boolean; modelName: stri
     formData.append("assetName", values.assetName);
     formData.append("assetType", values.assetType);
     if (values.capturedAt) formData.append("capturedAt", new Date(values.capturedAt).toISOString());
-    if (values.latitude) formData.append("latitude", values.latitude);
-    if (values.longitude) formData.append("longitude", values.longitude);
-    if (values.altitudeM) formData.append("altitudeM", values.altitudeM);
-    if (values.headingDeg) formData.append("headingDeg", values.headingDeg);
+    if (values.latitude !== "") formData.append("latitude", values.latitude);
+    if (values.longitude !== "") formData.append("longitude", values.longitude);
+    if (values.altitudeM !== "") formData.append("altitudeM", values.altitudeM);
+    if (values.headingDeg !== "") formData.append("headingDeg", values.headingDeg);
     formData.append("locationSource", values.locationSource);
     formData.append("locationConsent", String(values.locationConsent));
+    formData.append("measurementMode", values.measurementMode ?? "UNCALIBRATED");
+    if (values.referenceMarkerMm) formData.append("referenceMarkerMm", values.referenceMarkerMm);
+    formData.append("assetContextMode", values.assetContextMode ?? "VISUAL_ONLY");
+    if (values.confirmedAssetCandidateId) formData.append("confirmedAssetCandidateId", values.confirmedAssetCandidateId);
     formData.append("idempotencyKey", idempotencyKey);
 
     const response = await fetch("/api/audit", { method: "POST", body: formData, headers: { "x-idempotency-key": idempotencyKey } });
@@ -106,7 +110,11 @@ function Workspace({ demoMode, modelName }: { demoMode: boolean; modelName: stri
       altitudeM: liveLocation?.altitudeM === null || !liveLocation ? "" : String(liveLocation.altitudeM),
       headingDeg: liveLocation?.headingDeg === null || !liveLocation ? "" : String(liveLocation.headingDeg),
       locationSource: values.locationMode,
-      locationConsent: values.locationMode === "LIVE_DEVICE"
+      locationConsent: values.locationMode === "LIVE_DEVICE",
+      measurementMode: values.measurementMode,
+      referenceMarkerMm: values.referenceMarkerMm === null ? "" : String(values.referenceMarkerMm),
+      assetContextMode: values.assetContextMode,
+      confirmedAssetCandidateId: values.confirmedAssetCandidateId ?? ""
     };
     const idempotencyKey = `audit-${crypto.randomUUID()}`;
     if (!navigator.onLine) {

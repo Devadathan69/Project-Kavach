@@ -7,7 +7,7 @@ import { demoEnvironment, demoFinal, demoMorphology, demoStress } from "@/lib/de
 import { env } from "@/lib/env";
 import { runLiveEnvironment, runLiveFinal, runLiveMorphology, runLiveStress } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
-import { AuditMetadataSchema, CompleteAuditSchema, type AuditMetadata, type CompleteAudit, type FinalAudit, type MorphologicalProfile, type StructuralStress } from "@/lib/schemas";
+import { AuditMetadataSchema, CompleteAuditSchema, EnvironmentalContextSchema, type AuditMetadata, type CompleteAudit, type EnvironmentalContext, type FinalAudit, type MorphologicalProfile, type StructuralStress } from "@/lib/schemas";
 import type { StoredImage } from "@/lib/storage";
 
 type RunAuditInput = {
@@ -148,6 +148,70 @@ function validateFinal(profile: MorphologicalProfile, finalAudit: FinalAudit) {
   }
 }
 
+function appendLimitation(limitations: string[], limitation: string, maximum: number) {
+  return limitations.includes(limitation) ? limitations : [...limitations, limitation].slice(0, maximum);
+}
+
+function enforceMorphologyMeasurementSafety(profile: MorphologicalProfile, metadata: AuditMetadata): MorphologicalProfile {
+  const limitation = "No declared scale marker was supplied; physical millimetre measurements have been withheld and only pixel-relative geometry is available.";
+  if (metadata.measurementMode === "REFERENCE_MARKER") {
+    return {
+      ...profile,
+      limitations: appendLimitation(profile.limitations, "A visible reference marker was declared by the operator. Any physical dimensions remain visual estimates and require field verification.", 16)
+    };
+  }
+
+  return {
+    ...profile,
+    tiles: profile.tiles.map((tile) => ({
+      ...tile,
+      anomalies: tile.anomalies.map((anomaly) => ({
+        ...anomaly,
+        crackGeometry: {
+          ...anomaly.crackGeometry,
+          lengthMm: null,
+          widthMinMm: null,
+          widthMaxMm: null,
+          widthAverageMm: null,
+          depthEstimateMm: null,
+          surfaceAreaMm2: null
+        }
+      }))
+    })),
+    limitations: appendLimitation(profile.limitations, limitation, 16)
+  };
+}
+
+function enforceStressMeasurementSafety(stress: StructuralStress, metadata: AuditMetadata): StructuralStress {
+  if (metadata.measurementMode === "REFERENCE_MARKER") return stress;
+  return {
+    ...stress,
+    anomalies: stress.anomalies.map((anomaly) => ({ ...anomaly, distanceToStructuralElementMm: null })),
+    limitations: appendLimitation(stress.limitations, "Distances in millimetres are withheld because the inspection image has no declared scale marker.", 16)
+  };
+}
+
+function enforceFinalMeasurementSafety(finalAudit: FinalAudit, metadata: AuditMetadata): FinalAudit {
+  if (metadata.measurementMode === "REFERENCE_MARKER") return finalAudit;
+  return {
+    ...finalAudit,
+    humanReviewRequired: true,
+    limitations: appendLimitation(finalAudit.limitations, "This result is uncalibrated visual triage. It must not be used as a physical crack measurement or a structural design decision.", 20)
+  };
+}
+
+function unavailableEnvironmentalContext(metadata: AuditMetadata, source: string): EnvironmentalContext {
+  return EnvironmentalContextSchema.parse({
+    coordinates: { latitude: metadata.latitude, longitude: metadata.longitude },
+    coastalExposure: { coastDistanceKm: null, salinityExposure: null },
+    climate: { monsoonRainfallMmAnnual: null, humidityPercent: null, temperatureC: null, observedAt: null, source },
+    structure: { structuralAgeYears: metadata.structuralAgeYears, drainageCondition: "UNKNOWN" },
+    environmentalRiskScore: 0,
+    riskNarrative: "No environmental risk score was issued because no approved environmental source was available for this audit.",
+    limitations: ["Environmental values are unavailable. KAVACH does not infer climate, salinity, rainfall, humidity, or coastal distance without an approved data source."]
+  });
+}
+
 async function approvedEnvironmentalSource() {
   if (!env.environmentDataUrl) {
     return { source: "No approved environmental data source configured", data: null };
@@ -191,9 +255,17 @@ async function executeAudit({ storedImage, metadata }: RunAuditInput): Promise<C
         scanId,
         imageWidthPx: storedImage.widthPx,
         imageHeightPx: storedImage.heightPx,
+        measurementEvidence: {
+          mode: metadata.measurementMode,
+          referenceMarkerMm: metadata.referenceMarkerMm,
+          instruction: metadata.measurementMode === "REFERENCE_MARKER"
+            ? "A visible marker was declared by the operator. Treat any physical dimensions as visual estimates only."
+            : "No scale marker is available. Return null for every millimetre or square-millimetre field."
+        },
         tiles: storedImage.tiles.map(({ tileId, xPx, yPx, widthPx, heightPx }) => ({ tileId, xPx, yPx, widthPx, heightPx }))
       }, storedImage.tiles);
     morphology = assertTileGeometry(morphology, storedImage);
+    morphology = enforceMorphologyMeasurementSafety(morphology, metadata);
   } catch (error) {
     if (env.demoMode) throw error;
     throw new AuditExecutionError(error instanceof Error ? error.message : "Morphological analysis failed.");
@@ -218,15 +290,19 @@ async function executeAudit({ storedImage, metadata }: RunAuditInput): Promise<C
     : runLiveStress({ morphologicalProfile: morphology, assetMetadata: { assetName: enrichedMetadata.assetName, assetType: enrichedMetadata.assetType, structuralAgeYears: enrichedMetadata.structuralAgeYears }, assetContext });
   const environmentPromise = env.demoMode
     ? Promise.resolve(demoEnvironment(enrichedMetadata))
-    : environmentalSourcePromise.then((source) => runLiveEnvironment({ morphologicalProfile: morphology, metadata: enrichedMetadata, assetContext, approvedEnvironmentalSource: source }));
+    : environmentalSourcePromise.then((source) => source.data === null
+      ? unavailableEnvironmentalContext(enrichedMetadata, source.source)
+      : runLiveEnvironment({ morphologicalProfile: morphology, metadata: enrichedMetadata, assetContext, approvedEnvironmentalSource: source }));
 
-  const [stress, environmentalContext] = await Promise.all([stressPromise, environmentPromise]);
+  const [rawStress, environmentalContext] = await Promise.all([stressPromise, environmentPromise]);
+  const stress = enforceStressMeasurementSafety(rawStress, enrichedMetadata);
   validateStress(morphology, stress);
 
   stageTrace.push("PREDICTING_DEGRADATION");
-  const finalAudit = env.demoMode
+  const generatedFinalAudit = env.demoMode
     ? demoFinal()
     : await runLiveFinal({ morphologicalProfile: morphology, assetContext, structuralStress: stress, environmentalContext, metadata: enrichedMetadata });
+  const finalAudit = enforceFinalMeasurementSafety(generatedFinalAudit, enrichedMetadata);
   validateFinal(morphology, finalAudit);
 
   stageTrace.push("SAVING_REPORT");

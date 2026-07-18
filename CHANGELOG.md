@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-19 02:50:45 +05:30 - Evidence-bound audit hardening
+
+- Files modified: `src/app/api/audit/route.ts`, `src/app/api/asset-context/route.ts`, `src/components/kavach-workspace.tsx`, `src/components/risk-dashboard.tsx`, `src/components/scan-progress.tsx`, `src/components/upload-panel.tsx`, `src/lib/asset-context.ts`, `src/lib/offline-queue.ts`, `src/lib/orchestrator.ts`, `src/lib/prompts.ts`, `src/lib/request-rate-limit.ts`, `src/lib/schemas.ts`, `README.md`, and `CHANGELOG.md`.
+- Added an explicit measurement basis. Uncalibrated images now have all physical millimetre geometry and distance values removed server-side, require human review, and are labelled as visual triage. A declared reference marker enables visual estimates only.
+- Added operator-confirmed public structure context. The intake can preflight a public map record, lets the operator confirm it, and only then uses the candidate's location and linked construction evidence; the audit endpoint rejects an unconfirmed automatic match. Visual-only triage remains available.
+- Prevented live environmental claims without an approved configured source. The pipeline now emits unavailable environmental context instead of asking the model to infer weather, salinity, rainfall, humidity, or coast distance.
+- Added per-instance request limits for expensive audit and public-record lookup endpoints, plus explicit retry timing. Updated dashboard, prompt wording, and deployment documentation to distinguish visual screening from certified structural-health or load calculations.
+
 ## 2026-07-19 — GPT-4o runtime compatibility
 
 - Restored `gpt-4o` as the default live-analysis model and updated the Render example configuration and intake badge accordingly.

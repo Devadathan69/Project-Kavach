@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, Ruler, ShieldAlert } from "lucide-react";
 import type { AuditResponse } from "@/components/scan-context";
 
 const riskClasses = {
@@ -14,16 +14,23 @@ export function RiskDashboard({ result }: { result: AuditResponse }) {
   const riskClass = riskClasses[finalAudit.riskLevel];
   const anomalyCount = morphologicalProfile.tiles.reduce((total, tile) => total + tile.anomalies.length, 0);
   const shearCount = structuralStress.anomalies.filter((item) => item.diagonalShearAssessment.isCandidate).length;
+  const measurementBasis = result.metadata.measurementMode === "REFERENCE_MARKER"
+    ? `Reference marker declared (${result.metadata.referenceMarkerMm} mm)`
+    : "Uncalibrated visual triage; physical dimensions withheld";
+  const assetEvidence = result.assetContext.matchStatus === "VERIFIED"
+    ? "Operator-confirmed public structure record"
+    : "No verified public structure record used";
+  const environmentalEvidence = result.environmentalContext.climate.source;
 
   return (
     <section className="grid gap-4 rounded-2xl border border-line bg-panel p-5 shadow-glow lg:grid-cols-[190px_1fr]" aria-labelledby="risk-heading">
       <div className="grid place-items-center">
-        <div className="grid h-40 w-40 place-items-center rounded-full p-3" style={{ background: `conic-gradient(${score <= 25 ? "#ff6577" : score <= 50 ? "#ff6577" : score <= 75 ? "#ffcb66" : "#60e7a6"} ${score * 3.6}deg, #263c51 0deg)` }} aria-label={`Structural Health Index: ${score} out of 100`}>
-          <div className="grid h-full w-full place-items-center rounded-full bg-canvas text-center"><span className="font-mono text-4xl font-bold">{score}</span><span className="mt-1 text-[10px] uppercase tracking-[0.16em] text-muted">SHI / 100</span></div>
+        <div className="grid h-40 w-40 place-items-center rounded-full p-3" style={{ background: `conic-gradient(${score <= 25 ? "#ff6577" : score <= 50 ? "#ff6577" : score <= 75 ? "#ffcb66" : "#60e7a6"} ${score * 3.6}deg, #263c51 0deg)` }} aria-label={`Visual risk triage index: ${score} out of 100`}>
+          <div className="grid h-full w-full place-items-center rounded-full bg-canvas text-center"><span className="font-mono text-4xl font-bold">{score}</span><span className="mt-1 text-[10px] uppercase tracking-[0.16em] text-muted">VRTI / 100</span></div>
         </div>
       </div>
       <div>
-        <div className="flex flex-wrap items-center gap-3"><p className="font-mono text-xs uppercase tracking-[0.18em] text-signal">Structural Health Index</p><span className={`rounded-full border px-3 py-1 font-mono text-xs font-semibold ${riskClass}`}>{finalAudit.riskLevel} RISK</span><span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted">{finalAudit.remedialUrgency}</span></div>
+        <div className="flex flex-wrap items-center gap-3"><p className="font-mono text-xs uppercase tracking-[0.18em] text-signal">Visual risk triage index</p><span className={`rounded-full border px-3 py-1 font-mono text-xs font-semibold ${riskClass}`}>{finalAudit.riskLevel} RISK</span><span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted">{finalAudit.remedialUrgency}</span></div>
         <h2 id="risk-heading" className="mt-2 text-2xl font-semibold">{finalAudit.reportTitle}</h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">{finalAudit.executiveSummary}</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -31,6 +38,7 @@ export function RiskDashboard({ result }: { result: AuditResponse }) {
           <Metric icon={<ShieldAlert size={17} />} label="Shear-screen candidates" value={String(shearCount)} />
           <Metric icon={<AlertTriangle size={17} />} label="Human review" value={finalAudit.humanReviewRequired ? "Required" : "Not flagged"} />
         </div>
+        <div className="mt-4 rounded-lg border border-warning/35 bg-warning/10 p-3 text-xs leading-5 text-warning"><div className="flex items-center gap-2 font-mono uppercase tracking-[0.14em]"><Ruler size={14} />Evidence boundary</div><p className="mt-2">{measurementBasis}. {assetEvidence}. Environmental source: {environmentalEvidence}.</p></div>
       </div>
     </section>
   );

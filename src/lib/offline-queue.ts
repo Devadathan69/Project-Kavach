@@ -18,6 +18,10 @@ export type QueuedAudit = {
     headingDeg: string;
     locationSource: "LIVE_DEVICE" | "STRUCTURE_LOOKUP";
     locationConsent: boolean;
+    measurementMode: "UNCALIBRATED" | "REFERENCE_MARKER";
+    referenceMarkerMm: string;
+    assetContextMode: "AUTO" | "CONFIRMED" | "VISUAL_ONLY";
+    confirmedAssetCandidateId: string;
   };
   idempotencyKey: string;
   retryCount: number;

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { env } from "@/lib/env";
 import { AuditExecutionError, findExistingAudit, formatZodError, parseAuditMetadata, runAudit } from "@/lib/orchestrator";
+import { applyRateLimit, clientRequestKey } from "@/lib/request-rate-limit";
 import { ImageValidationError, storeAndTileImage, validateImageBytes, type AcceptedMimeType } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -67,6 +68,10 @@ export async function POST(request: Request) {
   }
 
   const idempotencyKey = request.headers.get("x-idempotency-key")?.trim() || nullableString(formData.get("idempotencyKey")) || `audit-${randomUUID()}`;
+  const requestedAssetContextMode = nullableString(formData.get("assetContextMode"));
+  if (requestedAssetContextMode === "AUTO") {
+    return errorResponse(400, "PUBLIC_RECORD_CONFIRMATION_REQUIRED", "Review and confirm a public structure record before it can supply location or construction evidence. Otherwise use visual-only triage.");
+  }
   let metadata;
   try {
     metadata = parseAuditMetadata({
@@ -80,6 +85,10 @@ export async function POST(request: Request) {
       structuralAgeYears: null,
       locationSource: nullableString(formData.get("locationSource")) ?? "STRUCTURE_LOOKUP",
       locationConsent: booleanValue(formData.get("locationConsent")),
+      measurementMode: nullableString(formData.get("measurementMode")) ?? "UNCALIBRATED",
+      referenceMarkerMm: nullableNumber(formData.get("referenceMarkerMm")),
+      assetContextMode: requestedAssetContextMode ?? "VISUAL_ONLY",
+      confirmedAssetCandidateId: nullableString(formData.get("confirmedAssetCandidateId")),
       idempotencyKey
     });
   } catch (error) {
@@ -92,6 +101,11 @@ export async function POST(request: Request) {
   const existing = await findExistingAudit(metadata.idempotencyKey);
   if (existing) {
     return NextResponse.json({ ...existing, idempotent: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const rateLimit = applyRateLimit("audit", clientRequestKey(request), { limit: 8, windowMs: 10 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: { code: "AUDIT_RATE_LIMITED", message: `Too many audits were submitted from this client. Try again in about ${rateLimit.retryAfterSeconds} seconds.` } }, { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } });
   }
 
   try {

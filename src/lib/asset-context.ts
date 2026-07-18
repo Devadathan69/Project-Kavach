@@ -185,8 +185,12 @@ async function findWikidataEntityId(requestedName: string, candidateName: string
 }
 
 export async function resolveAssetContext(metadata: AuditMetadata): Promise<AssetContext> {
+  if (metadata.assetContextMode === "VISUAL_ONLY") {
+    return unavailableContext(metadata.assetName, "The operator chose visual-only analysis and did not authorise a public structure-context match for this audit.");
+  }
+
   const origin = metadata.latitude === null || metadata.longitude === null ? null : { latitude: metadata.latitude, longitude: metadata.longitude };
-  const cacheKey = `${metadata.assetName.trim().toLocaleLowerCase()}|${origin ? `${origin.latitude.toFixed(3)}|${origin.longitude.toFixed(3)}` : "structure-name"}`;
+  const cacheKey = `${metadata.assetName.trim().toLocaleLowerCase()}|${origin ? `${origin.latitude.toFixed(3)}|${origin.longitude.toFixed(3)}` : "structure-name"}|${metadata.assetContextMode}|${metadata.confirmedAssetCandidateId ?? "none"}`;
   const cached = contextCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
@@ -199,10 +203,26 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
     }
 
     const lexicalCandidate = candidates.find((candidate) => candidate.displayName.toLocaleLowerCase().includes(metadata.assetName.trim().toLocaleLowerCase()));
-    const aiSelection = env.demoMode
-      ? { candidateId: lexicalCandidate?.candidateId ?? null, confidence: lexicalCandidate ? 0.75 : 0, rationale: "Demo mode selected only a direct local-name match from public map candidates." }
-      : await runLiveAssetMatch({ requestedName: metadata.assetName, originCoordinates: origin, candidates: candidates.map(({ candidateId, displayName, osmType, osmId, distanceM }) => ({ candidateId, displayName, osmType, osmId, distanceM })) });
-    const selected = aiSelection.candidateId ? candidates.find((candidate) => candidate.candidateId === aiSelection.candidateId) : undefined;
+    let aiSelection: { candidateId: string | null; confidence: number; rationale: string };
+    let selected: NominatimCandidate | undefined;
+
+    if (metadata.assetContextMode === "CONFIRMED") {
+      selected = candidates.find((candidate) => candidate.candidateId === metadata.confirmedAssetCandidateId);
+      const directNameMatch = selected ? normalizedName(selected.displayName).includes(normalizedName(metadata.assetName)) : false;
+      aiSelection = {
+        candidateId: selected?.candidateId ?? null,
+        confidence: selected && directNameMatch ? 0.9 : 0.6,
+        rationale: selected
+          ? "The operator reviewed and confirmed this public map candidate before analysis."
+          : "The previously confirmed public map candidate could not be retrieved for this audit."
+      };
+    } else {
+      aiSelection = env.demoMode
+        ? { candidateId: lexicalCandidate?.candidateId ?? null, confidence: lexicalCandidate ? 0.75 : 0, rationale: "Demo mode selected only a direct local-name match from public map candidates." }
+        : await runLiveAssetMatch({ requestedName: metadata.assetName, originCoordinates: origin, candidates: candidates.map(({ candidateId, displayName, osmType, osmId, distanceM }) => ({ candidateId, displayName, osmType, osmId, distanceM })) });
+      selected = aiSelection.candidateId ? candidates.find((candidate) => candidate.candidateId === aiSelection.candidateId) : undefined;
+    }
+
     if (!selected) {
       const unresolved = AssetContextSchema.parse({
         requestedName: metadata.assetName,
@@ -221,7 +241,7 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
 
     const directNameMatch = normalizedName(selected.displayName).includes(normalizedName(metadata.assetName));
     const matchConfidence = directNameMatch ? Math.max(aiSelection.confidence, 0.85) : aiSelection.confidence;
-    const verified = matchConfidence >= 0.75;
+    const verified = metadata.assetContextMode === "CONFIRMED" ? directNameMatch : matchConfidence >= 0.75;
     const wikidataId = selected.wikidataId ?? (verified ? await findWikidataEntityId(metadata.assetName, selected.displayName) : null);
     const construction = verified
       ? await buildYearFromWikidata(wikidataId)
