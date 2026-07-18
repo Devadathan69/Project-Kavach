@@ -200,6 +200,19 @@ function enforceFinalMeasurementSafety(finalAudit: FinalAudit, metadata: AuditMe
   };
 }
 
+function enforceFinalRiskClassification(finalAudit: FinalAudit): FinalAudit {
+  const riskLevel = riskForHealthIndex(finalAudit.structuralHealthIndex);
+  const remedialUrgency = urgencyForRisk(riskLevel);
+  if (finalAudit.riskLevel === riskLevel && finalAudit.remedialUrgency === remedialUrgency) return finalAudit;
+
+  return {
+    ...finalAudit,
+    riskLevel,
+    remedialUrgency,
+    limitations: appendLimitation(finalAudit.limitations, "Risk level and remedial urgency were derived deterministically from the visual triage index.", 20)
+  };
+}
+
 function unavailableEnvironmentalContext(metadata: AuditMetadata, source: string): EnvironmentalContext {
   return EnvironmentalContextSchema.parse({
     coordinates: { latitude: metadata.latitude, longitude: metadata.longitude },
@@ -302,7 +315,8 @@ async function executeAudit({ storedImage, metadata }: RunAuditInput): Promise<C
   const generatedFinalAudit = env.demoMode
     ? demoFinal()
     : await runLiveFinal({ morphologicalProfile: morphology, assetContext, structuralStress: stress, environmentalContext, metadata: enrichedMetadata });
-  const finalAudit = enforceFinalMeasurementSafety(generatedFinalAudit, enrichedMetadata);
+  const classifiedFinalAudit = enforceFinalRiskClassification(generatedFinalAudit);
+  const finalAudit = enforceFinalMeasurementSafety(classifiedFinalAudit, enrichedMetadata);
   validateFinal(morphology, finalAudit);
 
   stageTrace.push("SAVING_REPORT");

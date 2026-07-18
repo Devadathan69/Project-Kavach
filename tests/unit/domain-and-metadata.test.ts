@@ -70,4 +70,23 @@ describe("audit evidence validation", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("normalises an all-null model vector to an unavailable vector", () => {
+    const result = StructuralStressSchema.safeParse({
+      anomalies: [{
+        anomalyId: "crack-02",
+        orientationDegrees: null,
+        vector: { dx: null, dy: null },
+        nearestStructuralElement: null,
+        distanceToStructuralElementMm: null,
+        isNearLoadBearingJunction: false,
+        diagonalShearAssessment: { isCandidate: false, targetDegrees: 45, toleranceDegrees: 5, rationale: "No directional visual evidence is available." },
+        structuralRiskScore: 12.4
+      }],
+      overallStructuralFinding: "Visual triage only.",
+      limitations: ["Field verification is required."]
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.anomalies[0].vector).toBeNull();
+  });
 });

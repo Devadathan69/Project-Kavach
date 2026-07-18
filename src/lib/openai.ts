@@ -33,7 +33,7 @@ function supportsReasoningEffort(model: string) {
 async function parseJsonResponse<T>(
   prompt: string,
   payload: unknown,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   images: ImageTile[] = [],
   correctiveAttempt = false
 ): Promise<T> {

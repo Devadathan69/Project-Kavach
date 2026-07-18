@@ -77,10 +77,14 @@ export const MorphologicalProfileSchema = z.object({
 export const StructuralStressItemSchema = z.object({
   anomalyId: z.string().min(1),
   orientationDegrees: finiteNumber.min(0).lt(180).nullable(),
-  vector: z.object({
+  vector: z.preprocess((value) => {
+    if (!value || typeof value !== "object") return value;
+    const candidate = value as { dx?: unknown; dy?: unknown };
+    return candidate.dx === null && candidate.dy === null ? null : value;
+  }, z.object({
     dx: finiteNumber.min(-1).max(1),
     dy: finiteNumber.min(-1).max(1)
-  }).strict().nullable(),
+  }).strict().nullable()),
   nearestStructuralElement: z.string().min(1).max(250).nullable(),
   distanceToStructuralElementMm: nullableMeasurement,
   isNearLoadBearingJunction: z.boolean(),

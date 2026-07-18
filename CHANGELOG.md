@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-19 03:35:38 +05:30 - Live pipeline completion hardening
+
+- Files modified: `src/lib/openai.ts`, `src/lib/orchestrator.ts`, `src/lib/prompts.ts`, `src/lib/schemas.ts`, `tests/unit/domain-and-metadata.test.ts`, and `CHANGELOG.md`.
+- Moved risk-level and remedial-urgency classification to deterministic server logic derived from the final visual triage index, preventing a model-provided categorical mismatch from aborting an otherwise valid audit.
+- Normalised the provider's semantically equivalent `{ dx: null, dy: null }` vector shape to `vector: null`, while retaining rejection of partial or non-numeric vectors. Updated prompts and parser typing to support this validated transformation.
+- Confirmed with a live synthetic inspection audit: HTTP 201, PostgreSQL persistence, score 76, and deterministic `LOW` / `MONITOR` classification.
+
 ## 2026-07-19 03:25:50 +05:30 - Live stress-score compatibility
 
 - Files modified: `src/lib/prompts.ts`, `src/lib/schemas.ts`, `tests/unit/domain-and-metadata.test.ts`, and `CHANGELOG.md`.
