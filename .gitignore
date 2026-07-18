@@ -1,0 +1,21 @@
+# dependencies and build output
+node_modules/
+.next/
+out/
+
+# local environment and runtime uploads
+.env
+.env.local
+.env.*.local
+storage/
+
+# Prisma local databases and generated test artifacts
+prisma/*.db
+prisma/*.db-journal
+playwright-report/
+test-results/
+
+# editor and operating-system files
+.DS_Store
+Thumbs.db
+*.log
