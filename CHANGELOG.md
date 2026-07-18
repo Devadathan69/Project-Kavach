@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-19 — Render build compatibility
+
+- Normalized nullable OpenAI response request IDs before constructing structured-output errors, resolving the strict TypeScript build failure on Render.
+
 ## 2026-07-19 — Stable development hydration and audit failures
 
 - Disabled PWA registration in development and actively remove KAVACH shell caches there. Production now caches only static assets and never a rendered dashboard document, preventing stale HTML from hydrating against fresh JavaScript.

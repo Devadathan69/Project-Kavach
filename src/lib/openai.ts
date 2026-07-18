@@ -52,14 +52,14 @@ async function parseJsonResponse<T>(
 
     const content = response.choices[0]?.message.content;
     if (!content) {
-      throw new StructuredOutputError("The analysis provider returned an empty response.", response._request_id);
+      throw new StructuredOutputError("The analysis provider returned an empty response.", response._request_id ?? undefined);
     }
 
     let decoded: unknown;
     try {
       decoded = JSON.parse(content);
     } catch {
-      throw new StructuredOutputError("The analysis provider returned non-JSON output.", response._request_id);
+      throw new StructuredOutputError("The analysis provider returned non-JSON output.", response._request_id ?? undefined);
     }
 
     const parsed = schema.safeParse(decoded);
@@ -78,7 +78,7 @@ async function parseJsonResponse<T>(
         requestId: response._request_id,
         issues: parsed.error.issues.map((issue) => ({ path: issue.path, code: issue.code }))
       });
-      throw new StructuredOutputError(`The analysis provider returned an invalid structured result: ${issueSummary}`, response._request_id);
+      throw new StructuredOutputError(`The analysis provider returned an invalid structured result: ${issueSummary}`, response._request_id ?? undefined);
     }
     return parsed.data;
   } catch (error) {
