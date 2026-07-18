@@ -166,7 +166,20 @@ async function approvedEnvironmentalSource() {
   }
 }
 
-export async function runAudit({ storedImage, metadata }: RunAuditInput): Promise<CompleteAudit> {
+export async function runAudit(input: RunAuditInput): Promise<CompleteAudit> {
+  try {
+    return await executeAudit(input);
+  } catch (error) {
+    if (error instanceof AuditExecutionError) throw error;
+    console.error("KAVACH audit orchestration failed", error);
+    throw new AuditExecutionError(
+      error instanceof Error ? `The audit pipeline could not complete safely: ${error.message}` : "The audit pipeline could not complete safely.",
+      "PIPELINE_FAILURE"
+    );
+  }
+}
+
+async function executeAudit({ storedImage, metadata }: RunAuditInput): Promise<CompleteAudit> {
   const stageTrace = ["VALIDATING_UPLOAD", "PREPARING_TILES", "ANALYZING_MORPHOLOGY"];
   const scanId = storedImage.auditId;
   let morphology: MorphologicalProfile;

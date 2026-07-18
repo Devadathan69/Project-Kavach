@@ -1,5 +1,5 @@
-const CACHE = "kavach-shell-v2";
-const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "kavach-shell-v3";
+const SHELL = ["/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -15,22 +15,16 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
-  const shouldPreferNetwork = request.mode === "navigate" || url.pathname.startsWith("/_next/");
+  const isStaticAsset = url.pathname.startsWith("/_next/static/") || ["/manifest.webmanifest", "/icon.svg"].includes(url.pathname);
+  const shouldPreferNetwork = request.mode === "navigate" || !isStaticAsset;
 
   if (shouldPreferNetwork) {
-    event.respondWith(fetch(request).then((response) => {
-      if (response.ok) {
-        const copy = response.clone();
-        void caches.open(CACHE).then((cache) => cache.put(request, copy));
-      }
-      return response;
-    }).catch(() => caches.match(request).then((cached) => cached || caches.match("/"))));
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }
 
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-    const isStatic = url.pathname.startsWith("/_next/static/") || ["/", "/manifest.webmanifest", "/icon.svg"].includes(url.pathname);
-    if (isStatic && response.ok) {
+    if (isStaticAsset && response.ok) {
       const copy = response.clone();
       void caches.open(CACHE).then((cache) => cache.put(request, copy));
     }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-19 — Stable development hydration and audit failures
+
+- Disabled PWA registration in development and actively remove KAVACH shell caches there. Production now caches only static assets and never a rendered dashboard document, preventing stale HTML from hydrating against fresh JavaScript.
+- Contained unexpected audit-orchestration exceptions in a typed, retry-safe pipeline failure instead of returning an uninformative HTTP 500 response.
+
 ## 2026-07-19 — Fresh intake shell after deploy
 
 - Updated the PWA service-worker cache strategy so the dashboard and Next.js bundles prefer the current network version, while keeping a cached offline fallback. This prevents an old intake screen from hiding the camera and name-based location options after a local restart or deployment.
