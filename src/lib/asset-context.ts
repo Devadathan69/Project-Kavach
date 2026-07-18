@@ -29,12 +29,20 @@ type WikidataEntityResponse = {
   }>;
 };
 
+type WikidataSearchResponse = {
+  search?: Array<{ id?: string; label?: string }>;
+};
+
 const CONTEXT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const contextCache = new Map<string, { expiresAt: number; value: AssetContext }>();
 let lastNominatimRequestAt = 0;
 
 function radians(value: number) {
   return value * Math.PI / 180;
+}
+
+function normalizedName(value: string) {
+  return value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 function distanceInMeters(fromLatitude: number, fromLongitude: number, toLatitude: number, toLongitude: number) {
@@ -151,6 +159,31 @@ async function buildYearFromWikidata(wikidataId: string | null) {
   }
 }
 
+async function findWikidataEntityId(requestedName: string, candidateName: string) {
+  const requested = normalizedName(requestedName);
+  const candidate = normalizedName(candidateName);
+  const url = new URL("https://www.wikidata.org/w/api.php");
+  url.searchParams.set("action", "wbsearchentities");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("language", "en");
+  url.searchParams.set("limit", "5");
+  url.searchParams.set("search", requestedName);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "KAVACH/0.1 local structural-audit application" }, cache: "no-store", signal: controller.signal });
+    if (!response.ok) return null;
+    const body = await response.json() as WikidataSearchResponse;
+    const direct = body.search?.find((item) => item.id && item.label && (normalizedName(item.label) === requested || candidate.includes(normalizedName(item.label))));
+    return direct?.id && /^Q\d+$/.test(direct.id) ? direct.id : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function resolveAssetContext(metadata: AuditMetadata): Promise<AssetContext> {
   const origin = metadata.latitude === null || metadata.longitude === null ? null : { latitude: metadata.latitude, longitude: metadata.longitude };
   const cacheKey = `${metadata.assetName.trim().toLocaleLowerCase()}|${origin ? `${origin.latitude.toFixed(3)}|${origin.longitude.toFixed(3)}` : "structure-name"}`;
@@ -186,16 +219,19 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
       return unresolved;
     }
 
-    const verified = aiSelection.confidence >= 0.75;
+    const directNameMatch = normalizedName(selected.displayName).includes(normalizedName(metadata.assetName));
+    const matchConfidence = directNameMatch ? Math.max(aiSelection.confidence, 0.85) : aiSelection.confidence;
+    const verified = matchConfidence >= 0.75;
+    const wikidataId = selected.wikidataId ?? (verified ? await findWikidataEntityId(metadata.assetName, selected.displayName) : null);
     const construction = verified
-      ? await buildYearFromWikidata(selected.wikidataId)
+      ? await buildYearFromWikidata(wikidataId)
       : { buildYear: null, sourceLabel: "Construction evidence withheld for an unverified match", sourceUrl: null };
     const structuralAgeYears = construction.buildYear === null ? null : Math.max(0, new Date().getUTCFullYear() - construction.buildYear);
     const context = AssetContextSchema.parse({
       requestedName: metadata.assetName,
       matchStatus: verified ? "VERIFIED" : "UNVERIFIED",
       resolvedName: selected.displayName,
-      matchConfidence: aiSelection.confidence,
+      matchConfidence,
       matchRationale: aiSelection.rationale,
       candidate: {
         candidateId: selected.candidateId,
@@ -205,7 +241,7 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
         latitude: selected.latitude,
         longitude: selected.longitude,
         distanceM: selected.distanceM,
-        wikidataId: selected.wikidataId,
+        wikidataId,
         sourceUrl: `https://www.openstreetmap.org/${selected.osmType}/${selected.osmId}`
       },
       resolvedCoordinates: verified ? { latitude: selected.latitude, longitude: selected.longitude, source: "STRUCTURE_LOOKUP" } : null,

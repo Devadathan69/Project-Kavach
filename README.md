@@ -31,7 +31,7 @@ Then set `DATABASE_URL` to the matching local connection string, for example `po
 3. KAVACH uses the supplied name to find public map candidates, asks the model to select only an evidence-supported match, and checks linked public construction data when available. A verified match supplies the inspection location for uploaded images.
 4. The validated morphology, stress, environmental, and predictor stages produce the visual dashboard and bilingual report.
 
-The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits public map lookups and displays source links for the selected OpenStreetMap and Wikidata records.
+The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits public map lookups, uses a conservative exact-name Wikidata fallback when a verified map record has no linked identifier, and displays source links for the selected OpenStreetMap and Wikidata records.
 
 The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-5.6-sol`, the GPT-5.6 flagship model) for live model calls. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
 

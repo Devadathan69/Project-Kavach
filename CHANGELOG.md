@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-19T01:15:39+05:30
+
+- Files modified: `src/lib/asset-context.ts`, `README.md`, and `CHANGELOG.md`.
+- Confirmed after a development-server restart that `gpt-5.6-sol` completes the full live audit flow with HTTP 201 and PostgreSQL persistence. The earlier HTTP 401 came from the stale process retaining the unavailable alias configuration.
+- Strengthened direct structure-name matches and added a conservative exact-name Wikidata entity-search fallback before construction-year retrieval, while preserving unavailable results for ambiguous evidence.
+
 ## 2026-07-19T01:10:58+05:30
 
 - Files modified: OpenAI model configuration, audit metadata/context resolution, live intake and telemetry components, offline queue metadata, API route, `README.md`, `.env.example`, and `CHANGELOG.md`.
