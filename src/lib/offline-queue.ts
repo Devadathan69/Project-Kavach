@@ -16,6 +16,7 @@ export type QueuedAudit = {
     longitude: string;
     altitudeM: string;
     headingDeg: string;
+    locationSource: "LIVE_DEVICE" | "STRUCTURE_LOOKUP";
     locationConsent: boolean;
   };
   idempotencyKey: string;

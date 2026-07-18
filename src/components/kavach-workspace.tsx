@@ -40,6 +40,7 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
     if (values.longitude) formData.append("longitude", values.longitude);
     if (values.altitudeM) formData.append("altitudeM", values.altitudeM);
     if (values.headingDeg) formData.append("headingDeg", values.headingDeg);
+    formData.append("locationSource", values.locationSource);
     formData.append("locationConsent", String(values.locationConsent));
     formData.append("idempotencyKey", idempotencyKey);
 
@@ -94,16 +95,18 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
   }, [dispatch]);
 
   const handleSubmit = useCallback(async (values: AuditFormValues) => {
-    if (!values.file || !values.location) return;
+    if (!values.file) return;
+    const liveLocation = values.locationMode === "LIVE_DEVICE" ? values.location : null;
     const metadata = {
       assetName: values.assetName,
       assetType: values.assetType,
-      capturedAt: values.location.capturedAt,
-      latitude: String(values.location.latitude),
-      longitude: String(values.location.longitude),
-      altitudeM: values.location.altitudeM === null ? "" : String(values.location.altitudeM),
-      headingDeg: values.location.headingDeg === null ? "" : String(values.location.headingDeg),
-      locationConsent: true
+      capturedAt: liveLocation?.capturedAt ?? new Date().toISOString(),
+      latitude: liveLocation ? String(liveLocation.latitude) : "",
+      longitude: liveLocation ? String(liveLocation.longitude) : "",
+      altitudeM: liveLocation?.altitudeM === null || !liveLocation ? "" : String(liveLocation.altitudeM),
+      headingDeg: liveLocation?.headingDeg === null || !liveLocation ? "" : String(liveLocation.headingDeg),
+      locationSource: values.locationMode,
+      locationConsent: values.locationMode === "LIVE_DEVICE"
     };
     const idempotencyKey = `audit-${crypto.randomUUID()}`;
     if (!navigator.onLine) {

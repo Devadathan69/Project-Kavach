@@ -15,7 +15,7 @@ export function TelemetrySidebar({ result }: { result: AuditResponse | null }) {
     <aside className="rounded-2xl border border-line bg-panel p-5 shadow-glow" aria-label="Technical telemetry">
       <div className="flex items-center justify-between"><p className="font-mono text-xs uppercase tracking-[0.18em] text-signal">Technical telemetry</p><ScanLine size={17} className="text-signal" aria-hidden="true" /></div>
       <div className="mt-4 grid gap-3">
-        <Telemetry icon={<MapPin size={16} />} label="Capture coordinates" value={coordinate} />
+        <Telemetry icon={<MapPin size={16} />} label="Inspection location" value={coordinate} subvalue={result.metadata.locationSource === "STRUCTURE_LOOKUP" ? "Resolved from verified structure record" : "Captured from live device location"} />
         <Telemetry icon={<Building2 size={16} />} label="Matched structure" value={assetContext.resolvedName ?? "No verified public match"} subvalue={`${assetContext.matchStatus} · ${Math.round(assetContext.matchConfidence * 100)}% match confidence`} />
         <Telemetry icon={<Building2 size={16} />} label="Construction evidence" value={assetContext.construction.buildYear === null ? "Build year unavailable" : `Built ${assetContext.construction.buildYear} · ${assetContext.construction.structuralAgeYears} years`} subvalue={assetContext.construction.sourceLabel} />
         <Telemetry icon={<ScanLine size={16} />} label="Normalized image" value={`${result.sourceImage.widthPx} × ${result.sourceImage.heightPx} px`} subvalue={`${result.morphologicalProfile.tiles.length} high-detail tiles`} />

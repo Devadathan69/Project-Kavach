@@ -10,7 +10,7 @@ type NominatimCandidate = {
   osmId: string;
   latitude: number;
   longitude: number;
-  distanceM: number;
+  distanceM: number | null;
   wikidataId: string | null;
 };
 
@@ -53,6 +53,7 @@ function unavailableContext(requestedName: string, limitation: string): AssetCon
     matchConfidence: 0,
     matchRationale: "No reliable map-and-name match was available for this audit.",
     candidate: null,
+    resolvedCoordinates: null,
     construction: { buildYear: null, structuralAgeYears: null, sourceLabel: "No verified public construction record", sourceUrl: null },
     limitations: [limitation]
   });
@@ -65,17 +66,19 @@ async function waitForNominatimAllowance() {
   lastNominatimRequestAt = Date.now();
 }
 
-async function nearbyCandidates(requestedName: string, latitude: number, longitude: number): Promise<NominatimCandidate[]> {
+async function structureCandidates(requestedName: string, origin: { latitude: number; longitude: number } | null): Promise<NominatimCandidate[]> {
   await waitForNominatimAllowance();
-  const radiusDegrees = 0.055;
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("q", requestedName);
   url.searchParams.set("addressdetails", "1");
   url.searchParams.set("extratags", "1");
   url.searchParams.set("limit", "5");
-  url.searchParams.set("bounded", "1");
-  url.searchParams.set("viewbox", `${longitude - radiusDegrees},${latitude + radiusDegrees},${longitude + radiusDegrees},${latitude - radiusDegrees}`);
+  if (origin) {
+    const radiusDegrees = 0.055;
+    url.searchParams.set("bounded", "1");
+    url.searchParams.set("viewbox", `${origin.longitude - radiusDegrees},${origin.latitude + radiusDegrees},${origin.longitude + radiusDegrees},${origin.latitude - radiusDegrees}`);
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8_000);
@@ -108,7 +111,7 @@ async function nearbyCandidates(requestedName: string, latitude: number, longitu
         osmId: String(raw.osm_id),
         latitude: candidateLatitude,
         longitude: candidateLongitude,
-        distanceM: Math.round(distanceInMeters(latitude, longitude, candidateLatitude, candidateLongitude)),
+        distanceM: origin ? Math.round(distanceInMeters(origin.latitude, origin.longitude, candidateLatitude, candidateLongitude)) : null,
         wikidataId: wikidata && /^Q\d+$/.test(wikidata) ? wikidata : null
       }];
     });
@@ -149,15 +152,13 @@ async function buildYearFromWikidata(wikidataId: string | null) {
 }
 
 export async function resolveAssetContext(metadata: AuditMetadata): Promise<AssetContext> {
-  if (metadata.latitude === null || metadata.longitude === null) {
-    return unavailableContext(metadata.assetName, "Live location was unavailable, so KAVACH did not attempt a structure or construction-year lookup.");
-  }
-  const cacheKey = `${metadata.assetName.trim().toLocaleLowerCase()}|${metadata.latitude.toFixed(3)}|${metadata.longitude.toFixed(3)}`;
+  const origin = metadata.latitude === null || metadata.longitude === null ? null : { latitude: metadata.latitude, longitude: metadata.longitude };
+  const cacheKey = `${metadata.assetName.trim().toLocaleLowerCase()}|${origin ? `${origin.latitude.toFixed(3)}|${origin.longitude.toFixed(3)}` : "structure-name"}`;
   const cached = contextCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   try {
-    const candidates = await nearbyCandidates(metadata.assetName, metadata.latitude, metadata.longitude);
+    const candidates = await structureCandidates(metadata.assetName, origin);
     if (candidates.length === 0) {
       const unavailable = unavailableContext(metadata.assetName, "No nearby public map candidate matched the supplied structure name.");
       contextCache.set(cacheKey, { value: unavailable, expiresAt: Date.now() + CONTEXT_CACHE_TTL_MS });
@@ -167,7 +168,7 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
     const lexicalCandidate = candidates.find((candidate) => candidate.displayName.toLocaleLowerCase().includes(metadata.assetName.trim().toLocaleLowerCase()));
     const aiSelection = env.demoMode
       ? { candidateId: lexicalCandidate?.candidateId ?? null, confidence: lexicalCandidate ? 0.75 : 0, rationale: "Demo mode selected only a direct local-name match from public map candidates." }
-      : await runLiveAssetMatch({ requestedName: metadata.assetName, latitude: metadata.latitude, longitude: metadata.longitude, candidates: candidates.map(({ candidateId, displayName, osmType, osmId, distanceM }) => ({ candidateId, displayName, osmType, osmId, distanceM })) });
+      : await runLiveAssetMatch({ requestedName: metadata.assetName, originCoordinates: origin, candidates: candidates.map(({ candidateId, displayName, osmType, osmId, distanceM }) => ({ candidateId, displayName, osmType, osmId, distanceM })) });
     const selected = aiSelection.candidateId ? candidates.find((candidate) => candidate.candidateId === aiSelection.candidateId) : undefined;
     if (!selected) {
       const unresolved = AssetContextSchema.parse({
@@ -177,6 +178,7 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
         matchConfidence: aiSelection.confidence,
         matchRationale: aiSelection.rationale,
         candidate: null,
+        resolvedCoordinates: null,
         construction: { buildYear: null, structuralAgeYears: null, sourceLabel: "No verified public construction record", sourceUrl: null },
         limitations: ["KAVACH did not find a sufficiently reliable AI-assisted match among nearby public map candidates."]
       });
@@ -184,11 +186,14 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
       return unresolved;
     }
 
-    const construction = await buildYearFromWikidata(selected.wikidataId);
+    const verified = aiSelection.confidence >= 0.75;
+    const construction = verified
+      ? await buildYearFromWikidata(selected.wikidataId)
+      : { buildYear: null, sourceLabel: "Construction evidence withheld for an unverified match", sourceUrl: null };
     const structuralAgeYears = construction.buildYear === null ? null : Math.max(0, new Date().getUTCFullYear() - construction.buildYear);
     const context = AssetContextSchema.parse({
       requestedName: metadata.assetName,
-      matchStatus: aiSelection.confidence >= 0.75 ? "VERIFIED" : "UNVERIFIED",
+      matchStatus: verified ? "VERIFIED" : "UNVERIFIED",
       resolvedName: selected.displayName,
       matchConfidence: aiSelection.confidence,
       matchRationale: aiSelection.rationale,
@@ -197,10 +202,13 @@ export async function resolveAssetContext(metadata: AuditMetadata): Promise<Asse
         displayName: selected.displayName,
         osmType: selected.osmType,
         osmId: selected.osmId,
+        latitude: selected.latitude,
+        longitude: selected.longitude,
         distanceM: selected.distanceM,
         wikidataId: selected.wikidataId,
         sourceUrl: `https://www.openstreetmap.org/${selected.osmType}/${selected.osmId}`
       },
+      resolvedCoordinates: verified ? { latitude: selected.latitude, longitude: selected.longitude, source: "STRUCTURE_LOOKUP" } : null,
       construction: { ...construction, structuralAgeYears },
       limitations: construction.buildYear === null ? ["No public construction year was available for the selected structure; age was not estimated."] : []
     });

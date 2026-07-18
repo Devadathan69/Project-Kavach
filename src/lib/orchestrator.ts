@@ -188,8 +188,13 @@ export async function runAudit({ storedImage, metadata }: RunAuditInput): Promis
 
   stageTrace.push("RESOLVING_ASSET_CONTEXT");
   const assetContext = await resolveAssetContext(metadata);
+  const resolvedCoordinates = assetContext.resolvedCoordinates;
   const enrichedMetadata = AuditMetadataSchema.parse({
     ...metadata,
+    latitude: resolvedCoordinates?.latitude ?? metadata.latitude,
+    longitude: resolvedCoordinates?.longitude ?? metadata.longitude,
+    locationSource: resolvedCoordinates ? "STRUCTURE_LOOKUP" : metadata.locationSource,
+    locationConsent: resolvedCoordinates ? false : metadata.locationConsent,
     structuralAgeYears: assetContext.construction.structuralAgeYears ?? metadata.structuralAgeYears
   });
 

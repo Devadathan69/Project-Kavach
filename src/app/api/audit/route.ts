@@ -77,13 +77,14 @@ export async function POST(request: Request) {
       longitude: nullableNumber(formData.get("longitude")),
       altitudeM: nullableNumber(formData.get("altitudeM")),
       headingDeg: nullableNumber(formData.get("headingDeg")),
-      structuralAgeYears: nullableNumber(formData.get("structuralAgeYears")),
+      structuralAgeYears: null,
+      locationSource: nullableString(formData.get("locationSource")) ?? "STRUCTURE_LOOKUP",
       locationConsent: booleanValue(formData.get("locationConsent")),
       idempotencyKey
     });
   } catch (error) {
     if (error instanceof ZodError) {
-      return errorResponse(400, "INVALID_AUDIT_METADATA", "Review the asset details and location consent.", formatZodError(error));
+      return errorResponse(400, "INVALID_AUDIT_METADATA", "Review the structure name and selected location strategy.", formatZodError(error));
     }
     return errorResponse(400, "INVALID_AUDIT_METADATA", "Review the audit details.");
   }
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
       return errorResponse(424, error.code, error.message);
     }
     console.error("KAVACH audit route failed", error);
-    return errorResponse(500, "AUDIT_UNEXPECTED_FAILURE", "KAVACH could not process this audit. No result has been recorded.");
+    const diagnostic = process.env.NODE_ENV === "development" && error instanceof Error ? error.message : "KAVACH could not process this audit. No result has been recorded.";
+    return errorResponse(500, "AUDIT_UNEXPECTED_FAILURE", diagnostic);
   }
 }

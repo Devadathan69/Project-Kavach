@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-19T01:10:58+05:30
+
+- Files modified: OpenAI model configuration, audit metadata/context resolution, live intake and telemetry components, offline queue metadata, API route, `README.md`, `.env.example`, and `CHANGELOG.md`.
+- Switched the configured analysis model to `gpt-5.6-sol` with high reasoning after confirming its Chat Completions JSON-mode capability.
+- Added mobile rear-camera capture alongside upload. Replaced mandatory live-location capture with an explicit strategy: verified structure-name lookup is the default for uploads, while live device location remains available for on-site captures.
+- A verified public structure match now supplies inspection coordinates and construction-age evidence where available; ambiguous or unavailable matches do not invent a location or age.
+- Live model invocation is currently blocked by the configured OpenAI project's HTTP 401 insufficient-permissions response for `gpt-5.6-sol`; credits alone do not resolve that account entitlement.
+
 ## 2026-07-19T00:55:47+05:30
 
 - Files modified: `README.md`, `.gitignore`, and `CHANGELOG.md`.

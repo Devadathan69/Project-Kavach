@@ -36,7 +36,7 @@ async function parseJsonResponse<T>(
   try {
     const response = await client().chat.completions.create({
       model: env.openAiModel,
-      temperature: 0.1,
+      reasoning_effort: "high",
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: prompt },

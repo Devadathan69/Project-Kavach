@@ -150,14 +150,21 @@ export const AuditMetadataSchema = z.object({
   altitudeM: finiteNumber.min(-1000).max(12000).nullable(),
   headingDeg: finiteNumber.min(0).lt(360).nullable(),
   structuralAgeYears: z.number().int().nonnegative().max(1000).nullable(),
+  locationSource: z.enum(["LIVE_DEVICE", "STRUCTURE_LOOKUP"]),
   locationConsent: z.boolean(),
   idempotencyKey: z.string().min(12).max(150)
 }).strict().superRefine((metadata, context) => {
   if ((metadata.latitude === null) !== (metadata.longitude === null)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Latitude and longitude must be supplied together.", path: ["latitude"] });
   }
-  if (!metadata.locationConsent && (metadata.latitude !== null || metadata.longitude !== null)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Location consent is required when coordinates are submitted.", path: ["locationConsent"] });
+  if (metadata.locationSource === "LIVE_DEVICE" && (metadata.latitude === null || metadata.longitude === null)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Live device location requires coordinates.", path: ["locationSource"] });
+  }
+  if (metadata.locationSource === "LIVE_DEVICE" && !metadata.locationConsent) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Location consent is required for a live device location.", path: ["locationConsent"] });
+  }
+  if (metadata.locationSource === "STRUCTURE_LOOKUP" && metadata.locationConsent) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Location consent applies only to coordinates captured from the live device.", path: ["locationConsent"] });
   }
 });
 
@@ -178,9 +185,16 @@ export const AssetContextSchema = z.object({
     displayName: z.string().min(1).max(800),
     osmType: z.enum(["node", "way", "relation"]),
     osmId: z.string().min(1),
-    distanceM: finiteNumber.nonnegative(),
+    latitude: finiteNumber.min(-90).max(90),
+    longitude: finiteNumber.min(-180).max(180),
+    distanceM: finiteNumber.nonnegative().nullable(),
     wikidataId: z.string().regex(/^Q\d+$/).nullable(),
     sourceUrl: z.string().url()
+  }).strict().nullable(),
+  resolvedCoordinates: z.object({
+    latitude: finiteNumber.min(-90).max(90),
+    longitude: finiteNumber.min(-180).max(180),
+    source: z.enum(["LIVE_DEVICE", "STRUCTURE_LOOKUP"])
   }).strict().nullable(),
   construction: z.object({
     buildYear: z.number().int().min(1).max(3000).nullable(),

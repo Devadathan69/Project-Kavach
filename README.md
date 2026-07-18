@@ -26,19 +26,21 @@ Then set `DATABASE_URL` to the matching local connection string, for example `po
 
 ## Audit workflow
 
-1. The operator names the structure and selects an inspection image.
-2. The browser requests live location permission. KAVACH does not accept manually typed coordinates or structure age.
-3. KAVACH uses the location and supplied name to find nearby public map candidates, asks the model to select only an evidence-supported match, and checks linked public construction data when available.
+1. The operator takes a photo with a supported phone camera or selects an inspection image.
+2. The operator names the structure and chooses either a name-based location lookup (recommended for uploads) or live device location (recommended on-site).
+3. KAVACH uses the supplied name to find public map candidates, asks the model to select only an evidence-supported match, and checks linked public construction data when available. A verified match supplies the inspection location for uploaded images.
 4. The validated morphology, stress, environmental, and predictor stages produce the visual dashboard and bilingual report.
 
 The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits public map lookups and displays source links for the selected OpenStreetMap and Wikidata records.
 
-The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-4o`) for live model calls. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
+The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-5.6-sol`, the GPT-5.6 flagship model) for live model calls. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
+
+Your OpenAI project must be permitted to call the selected model through Chat Completions. A model may be visible to the API while still returning a permissions error for inference; in that case, grant the project access or use a model that the project is permitted to invoke.
 
 ## Data and privacy
 
 - Uploaded originals are stored outside the public static directory under `KAVACH_STORAGE_DIR` (default `./storage`).
-- Coordinates are obtained only through the browser's live-location permission flow; the intake does not present manual latitude, longitude, or age fields. The dashboard masks them to coarse precision.
+- The intake never presents manual latitude, longitude, or age fields. It can use a permissioned live device location or a verified public structure record; the dashboard masks coordinates to coarse precision.
 - After an operator submits a named structure and live location, KAVACH makes one rate-limited nearby-name lookup against OpenStreetMap Nominatim, asks the model to select only an evidence-supported candidate, and queries linked Wikidata `P571` inception data for construction year. It shows source links and leaves age unavailable when a reliable match or public construction record does not exist.
 - The service worker caches only the application shell and static assets; audit API traffic, reports, images, locations, and credentials are never cached.
 - Offline uploads are stored only after the operator explicitly opts in. They can be retried after reconnecting or deleted from the queue.
