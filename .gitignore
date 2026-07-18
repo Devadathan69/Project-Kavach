@@ -1,21 +1,26 @@
-# dependencies and build output
+# Dependencies, builds, and local tool caches
 node_modules/
 .next/
 out/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
 
-# local environment and runtime uploads
+# Secrets, local environment, and runtime uploads
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 storage/
 
-# Prisma local databases and generated test artifacts
+# Local databases and generated verification artifacts
 prisma/*.db
 prisma/*.db-journal
 playwright-report/
 test-results/
+playwright/.cache/
 
-# editor and operating-system files
+# Logs, editor files, and operating-system files
 .DS_Store
 Thumbs.db
 *.log

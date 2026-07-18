@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-19T00:55:47+05:30
+
+- Files modified: `README.md`, `.gitignore`, and `CHANGELOG.md`.
+- Documented the exact local PostgreSQL/Docker setup, live-location and public-record audit workflow, unavailable-evidence policy, and local development URL.
+- Expanded ignored files to protect all environment variants while retaining `.env.example`, as well as local runtime storage, caches, coverage, and verification artifacts.
+
 ## 2026-07-19T00:50:25+05:30
 
 - Files modified: validated OpenAI response handling, audit orchestration/schema/prompt modules, location-aware intake/dashboard/offline metadata, new public asset-context resolver, and `README.md`.
