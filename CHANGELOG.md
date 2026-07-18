@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-19 03:15:49 +05:30 - Complete verification and standalone deployment repair
+
+- Files modified: `eslint.config.mjs`, `next.config.ts`, `package.json`, `package-lock.json`, `playwright.config.ts`, `postcss.config.mjs`, `scripts/prepare-standalone.mjs`, `src/components/analysis-canvas.tsx`, `tests/unit/domain-and-metadata.test.ts`, `tests/integration/health.integration.test.ts`, `tests/e2e/intake.spec.ts`, `vitest.config.ts`, `vitest.integration.config.ts`, `README.md`, and `CHANGELOG.md`.
+- Repaired the non-interactive lint command and added a flat ESLint configuration. Lint, strict TypeScript checking, a five-case unit suite, and a health-endpoint integration suite now run successfully from the documented commands.
+- Added deterministic Playwright coverage for desktop Chromium and a Pixel 5 profile: mobile camera capture, safe visual-only intake defaults, completed demo audits, and consented offline queueing. Browser tests now build and exercise an isolated production server on a dedicated port.
+- Repaired standalone production deployment: `npm run start` now launches `.next/standalone/server.js`, while a post-build step copies public and Next static assets into the standalone bundle. Verified the production health route, root page, intake markup, and a rendered JavaScript asset all return HTTP 200.
+- Final verification passed with `npm run verify`: lint, typecheck, 5 unit tests, 1 integration test, production build, and 6 Playwright checks all passed.
+
 ## 2026-07-19 02:50:45 +05:30 - Evidence-bound audit hardening
 
 - Files modified: `src/app/api/audit/route.ts`, `src/app/api/asset-context/route.ts`, `src/components/kavach-workspace.tsx`, `src/components/risk-dashboard.tsx`, `src/components/scan-progress.tsx`, `src/components/upload-panel.tsx`, `src/lib/asset-context.ts`, `src/lib/offline-queue.ts`, `src/lib/orchestrator.ts`, `src/lib/prompts.ts`, `src/lib/request-rate-limit.ts`, `src/lib/schemas.ts`, `README.md`, and `CHANGELOG.md`.

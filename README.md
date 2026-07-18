@@ -56,14 +56,14 @@ Your OpenAI project must be permitted to call the selected model through Chat Co
 | `npm run build` / `npm run start` | Create and run the production build. |
 | `npm run lint` / `npm run typecheck` | Static code checks. |
 | `npm run test` / `npm run test:integration` | Unit and integration suites. |
-| `npm run test:e2e` | Playwright browser suite. |
+| `npm run test:e2e` | Builds the standalone production server, then runs Playwright checks on desktop and mobile profiles. |
 | `npm run verify` | Full release verification pipeline. |
 | `npm run db:generate` | Generate Prisma Client. |
 | `npm run db:deploy` / `npm run db:seed` | Deploy schema and load the synthetic seed audit. |
 
 ## Deployment notes
 
-The audit route uses Next.js’s Node.js runtime because it writes validated media metadata and uses Prisma/PostgreSQL. It is intentionally not an Edge route. The built-in request limiter is an in-memory, per-instance protection: it is useful for a single Render instance but must be replaced with a shared store such as Redis when horizontally scaling.
+The audit route uses Next.js’s Node.js runtime because it writes validated media metadata and uses Prisma/PostgreSQL. It is intentionally not an Edge route. `npm run start` launches the generated standalone server, and the `postbuild` step copies public and Next static assets into that deployment bundle. The built-in request limiter is an in-memory, per-instance protection: it is useful for a single Render instance but must be replaced with a shared store such as Redis when horizontally scaling.
 
 Before a public, multi-user rollout, complete these infrastructure gates:
 

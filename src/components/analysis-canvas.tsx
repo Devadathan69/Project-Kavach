@@ -1,6 +1,7 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
 import { ImageOff, ScanSearch, Target } from "lucide-react";
+import Image from "next/image";
 import type { AuditResponse, ScanStatus } from "@/components/scan-context";
 
 type AnalysisCanvasProps = {
@@ -23,7 +24,7 @@ export function AnalysisCanvas({ previewUrl, result, status, selectedAnomalyId, 
     <section className="overflow-hidden rounded-2xl border border-line bg-panel shadow-glow" aria-labelledby="analysis-heading">
       <div className="flex items-center justify-between border-b border-line px-4 py-3"><div className="flex items-center gap-2"><ScanSearch size={17} className="text-signal" aria-hidden="true" /><h2 id="analysis-heading" className="text-sm font-semibold">Spatial anomaly overlay</h2></div><span className="font-mono text-xs text-muted">{result ? `${anomalies.length} VECTOR MARKERS` : "AWAITING FRAME"}</span></div>
       <div className="relative aspect-[4/3] min-h-[300px] bg-[#02070d]">
-        {previewUrl ? <img src={previewUrl} alt="Uploaded structural inspection frame" className="h-full w-full object-contain" /> : <div className="grid h-full place-items-center p-8 text-center text-muted"><div><ImageOff className="mx-auto mb-3 text-line" size={42} aria-hidden="true" /><p className="text-sm">Your inspection frame will appear here.</p><p className="mt-1 text-xs">KAVACH preserves source-image coordinates for every visible anomaly.</p></div></div>}
+        {previewUrl ? <Image src={previewUrl} alt="Uploaded structural inspection frame" fill unoptimized sizes="(max-width: 1280px) 100vw, 1100px" className="object-contain" /> : <div className="grid h-full place-items-center p-8 text-center text-muted"><div><ImageOff className="mx-auto mb-3 text-line" size={42} aria-hidden="true" /><p className="text-sm">Your inspection frame will appear here.</p><p className="mt-1 text-xs">KAVACH preserves source-image coordinates for every visible anomaly.</p></div></div>}
         {previewUrl && result && <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} preserveAspectRatio="xMidYMid meet" role="group" aria-label="Detected anomaly overlays">
           {anomalies.map((anomaly) => {
             const selected = selectedAnomalyId === anomaly.anomalyId;
