@@ -16,7 +16,7 @@ function integerFromEnv(name: string, fallback: number) {
 export const env = {
   demoMode: TRUE_VALUES.has((process.env.KAVACH_DEMO_MODE ?? "true").toLowerCase()),
   openAiApiKey: process.env.OPENAI_API_KEY,
-  openAiModel: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
+  openAiModel: process.env.OPENAI_MODEL ?? "gpt-4o",
   databaseUrl: process.env.DATABASE_URL,
   maxUploadBytes: integerFromEnv("KAVACH_MAX_UPLOAD_BYTES", 10 * 1024 * 1024),
   storageDirectory: process.env.KAVACH_STORAGE_DIR ?? "./storage",

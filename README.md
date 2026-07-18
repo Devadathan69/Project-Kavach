@@ -33,7 +33,7 @@ Then set `DATABASE_URL` to the matching local connection string, for example `po
 
 The public-record step is best-effort. A missing or uncertain map match, construction date, or age is shown as unavailable rather than inferred. KAVACH rate-limits public map lookups, uses a conservative exact-name Wikidata fallback when a verified map record has no linked identifier, and displays source links for the selected OpenStreetMap and Wikidata records.
 
-The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-5.6-sol`, the GPT-5.6 flagship model) for live model calls. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
+The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-validated demonstration result. Set it to `false`, provide `OPENAI_API_KEY`, and configure `OPENAI_MODEL` (default `gpt-4o`) for live model calls. GPT-4o receives high-detail image tiles and JSON-mode structured outputs; reasoning controls are sent only to models that support them. Images are divided into overlapping tiles no greater than 2048 × 2048 and submitted with `detail: "high"`.
 
 Your OpenAI project must be permitted to call the selected model through Chat Completions. A model may be visible to the API while still returning a permissions error for inference; in that case, grant the project access or use a model that the project is permitted to invoke.
 

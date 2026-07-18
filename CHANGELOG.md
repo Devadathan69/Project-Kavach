@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-19 — GPT-4o runtime compatibility
+
+- Restored `gpt-4o` as the default live-analysis model and updated the Render example configuration and intake badge accordingly.
+- Restrict `reasoning_effort` to GPT-5 and o-series models, preventing GPT-4o's HTTP 400 unsupported-parameter error while preserving high-detail image and JSON-mode analysis.
+
 ## 2026-07-19 — Render build compatibility
 
 - Normalized nullable OpenAI response request IDs and replaced an unsafe error-status cast with a type guard, resolving strict TypeScript build failures on Render.

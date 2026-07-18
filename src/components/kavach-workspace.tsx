@@ -13,11 +13,11 @@ import { TelemetrySidebar } from "@/components/telemetry-sidebar";
 import { UploadPanel, type AuditFormValues } from "@/components/upload-panel";
 import { clearQueuedAudits, enqueueAudit, listQueuedAudits, markQueuedAuditError, removeQueuedAudit, type QueuedAudit } from "@/lib/offline-queue";
 
-export function KavachWorkspace({ demoMode }: { demoMode: boolean }) {
-  return <ScanProvider><Workspace demoMode={demoMode} /></ScanProvider>;
+export function KavachWorkspace({ demoMode, modelName }: { demoMode: boolean; modelName: string }) {
+  return <ScanProvider><Workspace demoMode={demoMode} modelName={modelName} /></ScanProvider>;
 }
 
-function Workspace({ demoMode }: { demoMode: boolean }) {
+function Workspace({ demoMode, modelName }: { demoMode: boolean; modelName: string }) {
   const { state, dispatch } = useScan();
   const [queuedAudits, setQueuedAudits] = useState<QueuedAudit[]>([]);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -145,7 +145,7 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
         </header>
 
         <div className="grid gap-5">
-          <UploadPanel onSubmit={handleSubmit} onPreview={handlePreview} isBusy={busy} demoMode={state.result?.demoMode ?? demoMode} />
+          <UploadPanel onSubmit={handleSubmit} onPreview={handlePreview} isBusy={busy} demoMode={state.result?.demoMode ?? demoMode} modelName={modelName} />
           <OfflineQueueStatus audits={queuedAudits} onRetry={() => void replayQueue()} onClear={() => void clearQueuedAudits().then(refreshQueue)} isRetrying={isRetrying} />
           {state.status !== "IDLE" && <ScanProgress status={state.status} demoMode={state.result?.demoMode ?? demoMode} />}
           {state.error && <div className="flex gap-3 rounded-xl border border-critical/50 bg-critical/10 p-4 text-sm text-critical" role="alert"><AlertCircle className="shrink-0" size={19} aria-hidden="true" /><p>{state.error}</p></div>}

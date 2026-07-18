@@ -25,6 +25,11 @@ function errorHttpStatus(error: unknown): number | null {
   return typeof status === "number" ? status : null;
 }
 
+function supportsReasoningEffort(model: string) {
+  const normalized = model.trim().toLowerCase();
+  return normalized.startsWith("gpt-5") || /^o(?:1|3|4)(?:-|$)/.test(normalized);
+}
+
 async function parseJsonResponse<T>(
   prompt: string,
   payload: unknown,
@@ -40,9 +45,10 @@ async function parseJsonResponse<T>(
   }));
 
   try {
+    const modelOptions = supportsReasoningEffort(env.openAiModel) ? { reasoning_effort: "high" as const } : {};
     const response = await client().chat.completions.create({
       model: env.openAiModel,
-      reasoning_effort: "high",
+      ...modelOptions,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: prompt },

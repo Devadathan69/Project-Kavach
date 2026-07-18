@@ -26,6 +26,7 @@ type UploadPanelProps = {
   onPreview: (file: File | null) => void;
   isBusy: boolean;
   demoMode: boolean;
+  modelName: string;
 };
 
 function requestLiveLocation() {
@@ -56,7 +57,7 @@ function requestLiveLocation() {
   });
 }
 
-export function UploadPanel({ onSubmit, onPreview, isBusy, demoMode }: UploadPanelProps) {
+export function UploadPanel({ onSubmit, onPreview, isBusy, demoMode, modelName }: UploadPanelProps) {
   const [values, setValues] = useState<AuditFormValues>({ file: null, assetName: "", assetType: "Concrete structure", locationMode: "STRUCTURE_LOOKUP", location: null, offlineConsent: false });
   const [localError, setLocalError] = useState<string | null>(null);
   const [locationPending, setLocationPending] = useState(false);
@@ -109,7 +110,7 @@ export function UploadPanel({ onSubmit, onPreview, isBusy, demoMode }: UploadPan
     <section className="rounded-2xl border border-line bg-panel/90 p-5 shadow-glow" aria-labelledby="upload-heading">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="font-mono text-xs uppercase tracking-[0.18em] text-signal">Intake station</p><h2 id="upload-heading" className="mt-1 text-xl font-semibold">Start a structural audit</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted">Take a site photo or upload an existing inspection image, then name the structure. KAVACH can resolve the structure location from public records for photos captured elsewhere.</p></div>
-        <span className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs ${demoMode ? "border-warning/50 bg-warning/10 text-warning" : "border-safe/50 bg-safe/10 text-safe"}`}><ShieldCheck size={14} aria-hidden="true" />{demoMode ? "DETERMINISTIC DEMO MODE" : "LIVE GPT-5.6 MODE"}</span>
+        <span className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs ${demoMode ? "border-warning/50 bg-warning/10 text-warning" : "border-safe/50 bg-safe/10 text-safe"}`}><ShieldCheck size={14} aria-hidden="true" />{demoMode ? "DETERMINISTIC DEMO MODE" : `LIVE ${modelName.toUpperCase()} MODE`}</span>
       </div>
 
       <form className="mt-5 grid gap-5" onSubmit={submit} noValidate>
