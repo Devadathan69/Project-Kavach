@@ -30,7 +30,7 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
     setQueuedAudits(queued.sort((left, right) => left.createdAt.localeCompare(right.createdAt)));
   }, []);
 
-  const postAudit = useCallback(async (file: File, values: Omit<AuditFormValues, "file" | "offlineConsent">, idempotencyKey: string) => {
+  const postAudit = useCallback(async (file: File, values: QueuedAudit["metadata"], idempotencyKey: string) => {
     const formData = new FormData();
     formData.append("image", file);
     formData.append("assetName", values.assetName);
@@ -40,7 +40,6 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
     if (values.longitude) formData.append("longitude", values.longitude);
     if (values.altitudeM) formData.append("altitudeM", values.altitudeM);
     if (values.headingDeg) formData.append("headingDeg", values.headingDeg);
-    if (values.structuralAgeYears) formData.append("structuralAgeYears", values.structuralAgeYears);
     formData.append("locationConsent", String(values.locationConsent));
     formData.append("idempotencyKey", idempotencyKey);
 
@@ -95,17 +94,16 @@ function Workspace({ demoMode }: { demoMode: boolean }) {
   }, [dispatch]);
 
   const handleSubmit = useCallback(async (values: AuditFormValues) => {
-    if (!values.file) return;
+    if (!values.file || !values.location) return;
     const metadata = {
       assetName: values.assetName,
       assetType: values.assetType,
-      capturedAt: values.capturedAt,
-      latitude: values.latitude,
-      longitude: values.longitude,
-      altitudeM: values.altitudeM,
-      headingDeg: values.headingDeg,
-      structuralAgeYears: values.structuralAgeYears,
-      locationConsent: values.locationConsent
+      capturedAt: values.location.capturedAt,
+      latitude: String(values.location.latitude),
+      longitude: String(values.location.longitude),
+      altitudeM: values.location.altitudeM === null ? "" : String(values.location.altitudeM),
+      headingDeg: values.location.headingDeg === null ? "" : String(values.location.headingDeg),
+      locationConsent: true
     };
     const idempotencyKey = `audit-${crypto.randomUUID()}`;
     if (!navigator.onLine) {

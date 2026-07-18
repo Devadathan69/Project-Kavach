@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-19T00:50:25+05:30
+
+- Files modified: validated OpenAI response handling, audit orchestration/schema/prompt modules, location-aware intake/dashboard/offline metadata, new public asset-context resolver, and `README.md`.
+- Fixed the live 424 failure: model output that violates the strict JSON contract now receives one explicit corrective re-execution with validator feedback; output is never silently coerced. A live smoke audit completed with HTTP 201 and PostgreSQL persistence.
+- Removed manual latitude, longitude, and structural-age inputs. The browser now acquires a permissioned live location, while a rate-limited OpenStreetMap candidate search, AI evidence match, and linked Wikidata construction-date lookup derive verified structure context and age when publicly available.
+- Deferred by user instruction: the complete lint, type-check, unit/integration, Playwright, and production-build verification suite.
+
 ## 2026-07-19T00:34:46+05:30
 
 - Files modified: local ignored `.env` and generated `next-env.d.ts`; `CHANGELOG.md` updated to record the environment setup.

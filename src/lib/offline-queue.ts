@@ -16,7 +16,6 @@ export type QueuedAudit = {
     longitude: string;
     altitudeM: string;
     headingDeg: string;
-    structuralAgeYears: string;
     locationConsent: boolean;
   };
   idempotencyKey: string;

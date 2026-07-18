@@ -161,6 +161,36 @@ export const AuditMetadataSchema = z.object({
   }
 });
 
+export const AssetMatchSchema = z.object({
+  candidateId: z.string().min(1).nullable(),
+  confidence: finiteNumber.min(0).max(1),
+  rationale: z.string().min(1).max(1000)
+}).strict();
+
+export const AssetContextSchema = z.object({
+  requestedName: z.string().min(1).max(180),
+  matchStatus: z.enum(["VERIFIED", "UNVERIFIED", "UNAVAILABLE"]),
+  resolvedName: z.string().min(1).max(500).nullable(),
+  matchConfidence: finiteNumber.min(0).max(1),
+  matchRationale: z.string().min(1).max(1200),
+  candidate: z.object({
+    candidateId: z.string().min(1),
+    displayName: z.string().min(1).max(800),
+    osmType: z.enum(["node", "way", "relation"]),
+    osmId: z.string().min(1),
+    distanceM: finiteNumber.nonnegative(),
+    wikidataId: z.string().regex(/^Q\d+$/).nullable(),
+    sourceUrl: z.string().url()
+  }).strict().nullable(),
+  construction: z.object({
+    buildYear: z.number().int().min(1).max(3000).nullable(),
+    structuralAgeYears: z.number().int().nonnegative().max(3000).nullable(),
+    sourceLabel: z.string().min(1).max(250),
+    sourceUrl: z.string().url().nullable()
+  }).strict(),
+  limitations: z.array(z.string().min(1).max(500)).max(12)
+}).strict();
+
 export const CompleteAuditSchema = z.object({
   reportId: z.string().min(1),
   idempotencyKey: z.string().min(12),
@@ -176,6 +206,7 @@ export const CompleteAuditSchema = z.object({
   }).strict(),
   metadata: AuditMetadataSchema,
   morphologicalProfile: MorphologicalProfileSchema,
+  assetContext: AssetContextSchema,
   structuralStress: StructuralStressSchema,
   environmentalContext: EnvironmentalContextSchema,
   finalAudit: FinalAuditSchema,
@@ -188,12 +219,15 @@ export const CompleteAuditSchema = z.object({
 
 export type AuditMetadata = z.infer<typeof AuditMetadataSchema>;
 export type MorphologicalProfile = z.infer<typeof MorphologicalProfileSchema>;
+export type AssetMatch = z.infer<typeof AssetMatchSchema>;
+export type AssetContext = z.infer<typeof AssetContextSchema>;
 export type StructuralStress = z.infer<typeof StructuralStressSchema>;
 export type EnvironmentalContext = z.infer<typeof EnvironmentalContextSchema>;
 export type FinalAudit = z.infer<typeof FinalAuditSchema>;
 export type CompleteAudit = z.infer<typeof CompleteAuditSchema>;
 
 export const responseContracts = {
+  assetMatch: "{candidateId|null,confidence,rationale}",
   morphology: "{scanId,imageWidthPx,imageHeightPx,tiles:[{tileId,xPx,yPx,widthPx,heightPx,anomalies:[{anomalyId,type,severity,confidence,description,centroidPx:{x,y},boundingBoxPx:{xMin,yMin,xMax,yMax},crackGeometry:{lengthMm,widthMinMm,widthMaxMm,widthAverageMm,depthEstimateMm,branchCount,surfaceAreaMm2},evidence}]}],limitations}",
   stress: "{anomalies:[{anomalyId,orientationDegrees,vector:{dx,dy},nearestStructuralElement,distanceToStructuralElementMm,isNearLoadBearingJunction,diagonalShearAssessment:{isCandidate,targetDegrees:45,toleranceDegrees:5,rationale},structuralRiskScore}],overallStructuralFinding,limitations}",
   environment: "{coordinates:{latitude,longitude},coastalExposure:{coastDistanceKm,salinityExposure},climate:{monsoonRainfallMmAnnual,humidityPercent,temperatureC,observedAt,source},structure:{structuralAgeYears,drainageCondition},environmentalRiskScore,riskNarrative,limitations}",

@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { resolveAssetContext } from "@/lib/asset-context";
 import { ANALYSIS_VERSION, isDiagonalShearAngle, riskForHealthIndex, urgencyForRisk } from "@/lib/domain";
 import { demoEnvironment, demoFinal, demoMorphology, demoStress } from "@/lib/demo";
 import { env } from "@/lib/env";
@@ -185,14 +186,21 @@ export async function runAudit({ storedImage, metadata }: RunAuditInput): Promis
     throw new AuditExecutionError(error instanceof Error ? error.message : "Morphological analysis failed.");
   }
 
+  stageTrace.push("RESOLVING_ASSET_CONTEXT");
+  const assetContext = await resolveAssetContext(metadata);
+  const enrichedMetadata = AuditMetadataSchema.parse({
+    ...metadata,
+    structuralAgeYears: assetContext.construction.structuralAgeYears ?? metadata.structuralAgeYears
+  });
+
   stageTrace.push("CALCULATING_STRESS", "ASSESSING_ENVIRONMENT");
   const environmentalSourcePromise = approvedEnvironmentalSource();
   const stressPromise = env.demoMode
     ? Promise.resolve(demoStress())
-    : runLiveStress({ morphologicalProfile: morphology, assetMetadata: { assetName: metadata.assetName, assetType: metadata.assetType, structuralAgeYears: metadata.structuralAgeYears } });
+    : runLiveStress({ morphologicalProfile: morphology, assetMetadata: { assetName: enrichedMetadata.assetName, assetType: enrichedMetadata.assetType, structuralAgeYears: enrichedMetadata.structuralAgeYears }, assetContext });
   const environmentPromise = env.demoMode
-    ? Promise.resolve(demoEnvironment(metadata))
-    : environmentalSourcePromise.then((source) => runLiveEnvironment({ morphologicalProfile: morphology, metadata, approvedEnvironmentalSource: source }));
+    ? Promise.resolve(demoEnvironment(enrichedMetadata))
+    : environmentalSourcePromise.then((source) => runLiveEnvironment({ morphologicalProfile: morphology, metadata: enrichedMetadata, assetContext, approvedEnvironmentalSource: source }));
 
   const [stress, environmentalContext] = await Promise.all([stressPromise, environmentPromise]);
   validateStress(morphology, stress);
@@ -200,7 +208,7 @@ export async function runAudit({ storedImage, metadata }: RunAuditInput): Promis
   stageTrace.push("PREDICTING_DEGRADATION");
   const finalAudit = env.demoMode
     ? demoFinal()
-    : await runLiveFinal({ morphologicalProfile: morphology, structuralStress: stress, environmentalContext, metadata });
+    : await runLiveFinal({ morphologicalProfile: morphology, assetContext, structuralStress: stress, environmentalContext, metadata: enrichedMetadata });
   validateFinal(morphology, finalAudit);
 
   stageTrace.push("SAVING_REPORT");
@@ -217,8 +225,9 @@ export async function runAudit({ storedImage, metadata }: RunAuditInput): Promis
       heightPx: storedImage.heightPx,
       sha256: storedImage.sha256
     },
-    metadata,
+    metadata: enrichedMetadata,
     morphologicalProfile: morphology,
+    assetContext,
     structuralStress: stress,
     environmentalContext,
     finalAudit,

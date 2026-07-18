@@ -7,6 +7,7 @@ const stages: Array<{ id: ScanStatus; label: string }> = [
   { id: "VALIDATING_UPLOAD", label: "Validate intake" },
   { id: "PREPARING_TILES", label: "Prepare high-detail tiles" },
   { id: "ANALYZING_MORPHOLOGY", label: "Profile surface morphology" },
+  { id: "RESOLVING_ASSET_CONTEXT", label: "Match nearby structure context" },
   { id: "CALCULATING_STRESS", label: "Calculate stress vectors" },
   { id: "ASSESSING_ENVIRONMENT", label: "Assess environment" },
   { id: "PREDICTING_DEGRADATION", label: "Draft degradation forecast" },

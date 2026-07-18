@@ -18,7 +18,8 @@ The default `KAVACH_DEMO_MODE=true` executes a deterministic, fully schema-valid
 ## Data and privacy
 
 - Uploaded originals are stored outside the public static directory under `KAVACH_STORAGE_DIR` (default `./storage`).
-- Coordinates are optional and require explicit consent before they are sent.
+- Coordinates are obtained only through the browser's live-location permission flow; the intake does not present manual latitude, longitude, or age fields.
+- After an operator submits a named structure and live location, KAVACH makes one rate-limited nearby-name lookup against OpenStreetMap Nominatim, asks the model to select only an evidence-supported candidate, and queries linked Wikidata `P571` inception data for construction year. It shows source links and leaves age unavailable when a reliable match or public construction record does not exist.
 - The service worker caches only the application shell and static assets; audit API traffic, reports, images, locations, and credentials are never cached.
 - Offline uploads are stored only after the operator explicitly opts in. They can be retried after reconnecting or deleted from the queue.
 

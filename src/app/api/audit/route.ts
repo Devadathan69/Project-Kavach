@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       return errorResponse(status, error.code, error.message);
     }
     if (error instanceof AuditExecutionError) {
-      return errorResponse(424, error.code, "KAVACH could not complete the analysis. You can safely retry this audit.");
+      return errorResponse(424, error.code, error.message);
     }
     console.error("KAVACH audit route failed", error);
     return errorResponse(500, "AUDIT_UNEXPECTED_FAILURE", "KAVACH could not process this audit. No result has been recorded.");
