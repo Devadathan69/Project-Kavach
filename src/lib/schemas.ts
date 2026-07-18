@@ -90,7 +90,7 @@ export const StructuralStressItemSchema = z.object({
     toleranceDegrees: z.literal(5),
     rationale: z.string().min(1).max(800)
   }).strict(),
-  structuralRiskScore: z.number().int().min(0).max(100)
+  structuralRiskScore: finiteNumber.min(0).max(100)
 }).strict();
 
 export const StructuralStressSchema = z.object({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isDiagonalShearAngle, riskForHealthIndex, urgencyForRisk } from "../../src/lib/domain";
-import { AuditMetadataSchema } from "../../src/lib/schemas";
+import { AuditMetadataSchema, StructuralStressSchema } from "../../src/lib/schemas";
 
 const baseMetadata = {
   assetName: "East pier 04",
@@ -51,5 +51,23 @@ describe("audit evidence validation", () => {
   it("requires a candidate when a public record is claimed as confirmed", () => {
     const result = AuditMetadataSchema.safeParse({ ...baseMetadata, assetContextMode: "CONFIRMED" });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts bounded decimal visual-risk scores from the stress screen", () => {
+    const result = StructuralStressSchema.safeParse({
+      anomalies: [{
+        anomalyId: "crack-01",
+        orientationDegrees: 45,
+        vector: { dx: 0.707, dy: 0.707 },
+        nearestStructuralElement: "Pier junction",
+        distanceToStructuralElementMm: null,
+        isNearLoadBearingJunction: true,
+        diagonalShearAssessment: { isCandidate: true, targetDegrees: 45, toleranceDegrees: 5, rationale: "Visible diagonal orientation near the declared junction." },
+        structuralRiskScore: 82.5
+      }],
+      overallStructuralFinding: "Visual triage only.",
+      limitations: ["Field verification is required."]
+    });
+    expect(result.success).toBe(true);
   });
 });

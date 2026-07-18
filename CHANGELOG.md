@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-19 03:25:50 +05:30 - Live stress-score compatibility
+
+- Files modified: `src/lib/prompts.ts`, `src/lib/schemas.ts`, `tests/unit/domain-and-metadata.test.ts`, and `CHANGELOG.md`.
+- Fixed the live GPT-4o audit failure caused by decimal `structuralRiskScore` values. The bounded visual stress-screen score now accepts decimals, while prompts explicitly retain whole-integer requirements for persisted environmental and final-audit scores and finding priorities.
+- Added a regression test for a bounded decimal stress score. The unit suite and production build passed, and the restarted local production server returned HTTP 200 for both health and dashboard routes.
+
 ## 2026-07-19 03:15:49 +05:30 - Complete verification and standalone deployment repair
 
 - Files modified: `eslint.config.mjs`, `next.config.ts`, `package.json`, `package-lock.json`, `playwright.config.ts`, `postcss.config.mjs`, `scripts/prepare-standalone.mjs`, `src/components/analysis-canvas.tsx`, `tests/unit/domain-and-metadata.test.ts`, `tests/integration/health.integration.test.ts`, `tests/e2e/intake.spec.ts`, `vitest.config.ts`, `vitest.integration.config.ts`, `README.md`, and `CHANGELOG.md`.
