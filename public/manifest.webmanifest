@@ -1,0 +1,9 @@
+{
+  "name": "KAVACH Structural Health Audit",
+  "short_name": "KAVACH",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07111D",
+  "theme_color": "#07111D",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

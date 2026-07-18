@@ -1,0 +1,26 @@
+# Dependencies, builds, and local tool caches
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
+
+# Secrets, local environment, and runtime uploads
+.env
+.env.*
+!.env.example
+storage/
+
+# Local databases and generated verification artifacts
+prisma/*.db
+prisma/*.db-journal
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Logs, editor files, and operating-system files
+.DS_Store
+Thumbs.db
+*.log

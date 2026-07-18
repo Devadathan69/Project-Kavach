@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReportStatus {
+  QUEUED
+  ANALYZING
+  COMPLETE
+  FAILED
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum RemedialUrgency {
+  MONITOR
+  SCHEDULED
+  PRIORITY
+  IMMEDIATE
+}
+
+enum AnomalyType {
+  CRACK
+  SPALLING
+  EXPOSED_REBAR
+  EFFLORESCENCE
+  CORROSION
+  OTHER
+}
+
+enum AnomalySeverity {
+  MINOR
+  MODERATE
+  SEVERE
+  CRITICAL
+}
+
+enum SalinityExposure {
+  LOW
+  MODERATE
+  HIGH
+  EXTREME
+}
+
+enum DrainageCondition {
+  GOOD
+  FAIR
+  POOR
+  UNKNOWN
+}
+
+model Report {
+  id                    String            @id @default(cuid())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  status                ReportStatus      @default(QUEUED)
+  idempotencyKey        String            @unique
+  demoMode              Boolean           @default(false)
+  analysisVersion       String
+  modelName             String?
+  sourceImagePath       String
+  sourceImageSha256     String
+  sourceImageMimeType   String
+  sourceImageWidthPx    Int
+  sourceImageHeightPx   Int
+  originalFilename      String?
+  capturedAt            DateTime?
+  latitude              Decimal?          @db.Decimal(9, 6)
+  longitude             Decimal?          @db.Decimal(9, 6)
+  altitudeM             Decimal?          @db.Decimal(10, 2)
+  headingDeg            Decimal?          @db.Decimal(6, 2)
+  assetName             String
+  assetType             String
+  structuralAgeYears    Int?
+  structuralHealthIndex Int?
+  riskLevel             RiskLevel?
+  remedialUrgency       RemedialUrgency?
+  summary               String?
+  reportEnglish         String?
+  reportMalayalam       String?
+  rawAnalysisJson       Json?
+  persistenceWarning    String?
+  completedAt           DateTime?
+  anomalies             Anomaly[]
+  environmentalContext  EnvironmentalContext?
+
+  @@index([createdAt])
+  @@index([latitude, longitude])
+  @@index([riskLevel])
+  @@index([status])
+  @@index([sourceImageSha256])
+  @@index([assetName])
+}
+
+model Anomaly {
+  id                             String          @id @default(cuid())
+  reportId                       String
+  ordinal                        Int
+  type                           AnomalyType
+  severity                       AnomalySeverity
+  confidence                     Decimal         @db.Decimal(4, 3)
+  description                    String
+  recommendation                 String
+  tileX                          Int
+  tileY                          Int
+  tileWidthPx                    Int
+  tileHeightPx                   Int
+  centroidXPx                    Decimal         @db.Decimal(12, 3)
+  centroidYPx                    Decimal         @db.Decimal(12, 3)
+  boundingBoxXMinPx              Decimal         @db.Decimal(12, 3)
+  boundingBoxYMinPx              Decimal         @db.Decimal(12, 3)
+  boundingBoxXMaxPx              Decimal         @db.Decimal(12, 3)
+  boundingBoxYMaxPx              Decimal         @db.Decimal(12, 3)
+  maskOrOverlayPath              String?
+  crackLengthMm                  Decimal?        @db.Decimal(12, 3)
+  crackWidthMinMm                Decimal?        @db.Decimal(12, 3)
+  crackWidthMaxMm                Decimal?        @db.Decimal(12, 3)
+  crackWidthAverageMm            Decimal?        @db.Decimal(12, 3)
+  crackDepthEstimateMm           Decimal?        @db.Decimal(12, 3)
+  branchCount                    Int?
+  propagationRateMmPerYear       Decimal?        @db.Decimal(12, 3)
+  surfaceAreaMm2                 Decimal?        @db.Decimal(14, 3)
+  orientationDegrees             Decimal?        @db.Decimal(6, 3)
+  vectorDx                       Decimal?        @db.Decimal(7, 5)
+  vectorDy                       Decimal?        @db.Decimal(7, 5)
+  isDiagonalShearCandidate       Boolean         @default(false)
+  nearestStructuralElement       String?
+  distanceToStructuralElementMm  Decimal?        @db.Decimal(12, 3)
+  isNearLoadBearingJunction      Boolean         @default(false)
+  latitude                       Decimal?        @db.Decimal(9, 6)
+  longitude                      Decimal?        @db.Decimal(9, 6)
+  elevationM                     Decimal?        @db.Decimal(10, 2)
+  worldCoordinateAccuracyM       Decimal?        @db.Decimal(10, 2)
+  report                         Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, ordinal])
+  @@index([type])
+  @@index([severity])
+  @@index([isDiagonalShearCandidate])
+}
+
+model EnvironmentalContext {
+  id                     String            @id @default(cuid())
+  reportId               String            @unique
+  createdAt              DateTime          @default(now())
+  latitude               Decimal?          @db.Decimal(9, 6)
+  longitude              Decimal?          @db.Decimal(9, 6)
+  coastDistanceKm        Decimal?          @db.Decimal(12, 3)
+  salinityExposure       SalinityExposure?
+  monsoonRainfallMmAnnual Decimal?         @db.Decimal(12, 3)
+  humidityPercent        Decimal?          @db.Decimal(6, 3)
+  temperatureC           Decimal?          @db.Decimal(6, 3)
+  weatherObservedAt      DateTime?
+  structuralAgeYears     Int?
+  drainageCondition      DrainageCondition @default(UNKNOWN)
+  environmentalRiskScore Int?
+  riskNarrative          String?
+  dataSource             String?
+  rawContextJson         Json?
+  report                 Report            @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}

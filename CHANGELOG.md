@@ -1,0 +1,32 @@
+# Changelog
+
+## 2026-07-19T00:55:47+05:30
+
+- Files modified: `README.md`, `.gitignore`, and `CHANGELOG.md`.
+- Documented the exact local PostgreSQL/Docker setup, live-location and public-record audit workflow, unavailable-evidence policy, and local development URL.
+- Expanded ignored files to protect all environment variants while retaining `.env.example`, as well as local runtime storage, caches, coverage, and verification artifacts.
+
+## 2026-07-19T00:50:25+05:30
+
+- Files modified: validated OpenAI response handling, audit orchestration/schema/prompt modules, location-aware intake/dashboard/offline metadata, new public asset-context resolver, and `README.md`.
+- Fixed the live 424 failure: model output that violates the strict JSON contract now receives one explicit corrective re-execution with validator feedback; output is never silently coerced. A live smoke audit completed with HTTP 201 and PostgreSQL persistence.
+- Removed manual latitude, longitude, and structural-age inputs. The browser now acquires a permissioned live location, while a rate-limited OpenStreetMap candidate search, AI evidence match, and linked Wikidata construction-date lookup derive verified structure context and age when publicly available.
+- Deferred by user instruction: the complete lint, type-check, unit/integration, Playwright, and production-build verification suite.
+
+## 2026-07-19T00:34:46+05:30
+
+- Files modified: local ignored `.env` and generated `next-env.d.ts`; `CHANGELOG.md` updated to record the environment setup.
+- Provisioned the local `kavach-postgres` PostgreSQL 16 container, set the local `DATABASE_URL`, deployed migration `20260719000100_init`, enabled live model mode, and started the development server on port 3000.
+- Confirmed the running health endpoint and root workspace route respond successfully. No full lint, type-check, test-suite, or production-build verification was run.
+- Removed an accidentally copied API key from `.env.example` before staging it. The key should be rotated by its owner.
+
+## 2026-07-19T00:24:23+05:30
+
+- Files modified: application foundation, Prisma schema/migration/seed, server-side audit route and orchestration modules, dashboard components, PWA assets, dependency/configuration files, and `README.md`.
+- Implemented the KAVACH Next.js 15 application: validated high-detail image intake; sequential dependency-aware four-agent OpenAI pipeline with deterministic demo fallback; PostgreSQL/Prisma report persistence; high-contrast structural audit dashboard; consent-based offline queue; and deployment guidance.
+- Deferred by user instruction: linting, TypeScript checks, unit/integration tests, Playwright E2E tests, production build/start validation, migration deployment, and seed execution against a live PostgreSQL database.
+
+## 2026-07-18T23:58:56+05:30
+
+- Files modified: `IMPLEMENTATION_PLAN.md`, `CHANGELOG.md`
+- Added the KAVACH implementation blueprint before any application code, covering the specification, backend validation/orchestration, Prisma schema, dashboard, testing, production verification, and the required ongoing change-log/atomic-commit workflow.
