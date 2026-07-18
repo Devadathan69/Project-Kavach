@@ -2,7 +2,7 @@
 
 ## 2026-07-19 — Render build compatibility
 
-- Normalized nullable OpenAI response request IDs before constructing structured-output errors, resolving the strict TypeScript build failure on Render.
+- Normalized nullable OpenAI response request IDs and replaced an unsafe error-status cast with a type guard, resolving strict TypeScript build failures on Render.
 
 ## 2026-07-19 — Stable development hydration and audit failures
 

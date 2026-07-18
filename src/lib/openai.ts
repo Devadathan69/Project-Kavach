@@ -19,6 +19,12 @@ function client() {
   return new OpenAI({ apiKey, timeout: 75_000, maxRetries: 1 });
 }
 
+function errorHttpStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object" || !("status" in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : null;
+}
+
 async function parseJsonResponse<T>(
   prompt: string,
   payload: unknown,
@@ -87,8 +93,9 @@ async function parseJsonResponse<T>(
       throw new StructuredOutputError("The analysis provider timed out before completing the audit.");
     }
     if (error instanceof Error) {
-      const status = typeof (error as { status?: unknown }).status === "number" ? ` (HTTP ${(error as { status: number }).status})` : "";
-      throw new StructuredOutputError(`OpenAI analysis request failed${status}: ${error.message}`);
+      const httpStatus = errorHttpStatus(error);
+      const statusSuffix = httpStatus === null ? "" : ` (HTTP ${httpStatus})`;
+      throw new StructuredOutputError(`OpenAI analysis request failed${statusSuffix}: ${error.message}`);
     }
     throw new StructuredOutputError("OpenAI analysis request failed for an unknown reason.");
   } finally {
