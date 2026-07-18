@@ -1,4 +1,4 @@
-const CACHE = "kavach-shell-v1";
+const CACHE = "kavach-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -15,6 +15,19 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  const shouldPreferNetwork = request.mode === "navigate" || url.pathname.startsWith("/_next/");
+
+  if (shouldPreferNetwork) {
+    event.respondWith(fetch(request).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        void caches.open(CACHE).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(request).then((cached) => cached || caches.match("/"))));
+    return;
+  }
+
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
     const isStatic = url.pathname.startsWith("/_next/static/") || ["/", "/manifest.webmanifest", "/icon.svg"].includes(url.pathname);
     if (isStatic && response.ok) {

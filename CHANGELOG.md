@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-19 — Fresh intake shell after deploy
+
+- Updated the PWA service-worker cache strategy so the dashboard and Next.js bundles prefer the current network version, while keeping a cached offline fallback. This prevents an old intake screen from hiding the camera and name-based location options after a local restart or deployment.
+
 ## 2026-07-19T01:15:39+05:30
 
 - Files modified: `src/lib/asset-context.ts`, `README.md`, and `CHANGELOG.md`.
